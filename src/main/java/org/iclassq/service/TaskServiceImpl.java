@@ -1,8 +1,12 @@
 package org.iclassq.service;
 
 import jakarta.validation.ValidationException;
+import org.iclassq.entity.Frequency;
 import org.iclassq.entity.Task;
+import org.iclassq.entity.TypeTask;
+import org.iclassq.repository.FrequencyRepository;
 import org.iclassq.repository.TaskRepository;
+import org.iclassq.repository.TypeTaskRepository;
 import org.iclassq.validation.TaskValidator;
 import org.iclassq.views.components.Notification;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +23,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private TypeTaskRepository typeTaskRepository;
+
+    @Autowired
+    private FrequencyRepository frequencyRepository;
 
     @Override
     public Long count() {
