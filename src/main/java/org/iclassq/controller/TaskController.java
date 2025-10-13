@@ -11,6 +11,7 @@ import org.iclassq.service.TypeTaskService;
 import org.iclassq.views.TaskContent;
 import org.iclassq.views.components.Message;
 import org.iclassq.views.dialogs.TaskFormDialog;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -30,7 +31,7 @@ public class TaskController {
     private static final Logger logger = Logger.getLogger(TaskController.class.getName());
 
     public TaskController(
-            TaskContent view,
+            @Lazy TaskContent view,
             TaskService taskService,
             TypeTaskService typeTaskService,
             FrequencyService frequencyService
@@ -41,19 +42,15 @@ public class TaskController {
         this.frequencyService = frequencyService;
     }
 
-    @PostConstruct
-    private void init() {
-        setupEventHandlers();
+//    @PostConstruct
+//    private void init() {
+//        loadStatus();
+//        loadInitialData();
+//    }
+
+    public void initialize() {
         loadStatus();
         loadInitialData();
-    }
-
-    private void setupEventHandlers() {
-        view.getBtnAddTask().setOnAction(evt -> handleAdd());
-        view.getBtnRefresh().setOnAction(evt -> loadInitialData());
-        view.getBtnSearch().setOnMouseClicked(evt -> applyFilters());
-        view.getBtnEdit().setOnMouseClicked(evt -> handleEdit());
-        view.getBtnDelete().setOnMouseClicked(evt -> handleDelete());
     }
 
     private void loadStatus() {
@@ -174,33 +171,45 @@ public class TaskController {
     }
 
     public void handleStatusChange(Task task, Boolean isActive) {
-        try {
-            task.setIsActive(isActive);
-            taskService.update(task);
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle(isActive ? "Confirmar inactivación" : "Confirmar activación");
+        confirmation.setHeaderText(isActive ? "¿Desea inactivar esta tarea?" : "¿Desea activar esta tarea?");
+        confirmation.setContentText("Tarea: " + task.getName());
 
-            logger.info(String.format(
-                    "Tarea '%s' -> %s",
-                    task.getName(),
-                    isActive ? "Activo" : "Inactiva"
-            ));
+        Optional<ButtonType> result = confirmation.showAndWait();
 
-            Message.showSuccess(
-                    "Estado actualizado",
-                    String.format("'%s' ahora está %s",
-                            task.getName(),
-                            isActive ? "Activo" : "Inactivo"
-                    )
-            );
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                task.setIsActive(isActive);
+                taskService.update(task);
 
-            view.refreshTable(taskService.findAll());
-        } catch (Exception e) {
-            logger.severe("Error al cambiar estado: " + e.getMessage());
-            Message.showError("Error", "No se pudo actualizar el estado");
-            view.refreshTable(taskService.findAll());
+                logger.info(String.format(
+                        "Tarea '%s' -> %s",
+                        task.getName(),
+                        isActive ? "Activo" : "Inactiva"
+                ));
+
+                Message.showSuccess(
+                        "Estado actualizado",
+                        String.format("'%s' ahora está %s",
+                                task.getName(),
+                                isActive ? "Activo" : "Inactivo"
+                        )
+                );
+
+                view.refreshTable(taskService.findAll());
+            } catch (Exception e) {
+                logger.severe("Error al cambiar estado: " + e.getMessage());
+                Message.showError(
+                        "Error",
+                        "No se pudo actualizar el estado"
+                );
+                view.refreshTable(taskService.findAll());
+            }
         }
     }
 
-    private void applyFilters() {
+    public void applyFilters() {
         String selectedStatus = view.getCboStatus().getValue();
 
         if (selectedStatus != null) {
@@ -219,7 +228,7 @@ public class TaskController {
         }
     }
 
-    private void loadInitialData() {
+    public void loadInitialData() {
         try {
             view.refreshTable(taskService.findAll());
             view.updateTaskCount(taskService.count());

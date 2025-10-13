@@ -6,6 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import org.iclassq.controller.TaskController;
 import org.iclassq.entity.Task;
 import org.iclassq.utils.Fonts;
 import org.iclassq.views.components.Table;
@@ -20,6 +21,8 @@ import java.util.logging.Logger;
 
 @Component
 public class TaskContent {
+    private final TaskController controller;
+
     private VBox mainContent;
     private Table<Task> taskTable;
     private TextField searchField;
@@ -29,17 +32,24 @@ public class TaskContent {
     private Button btnAddTask;
     private Button btnRefresh;
     private Button btnSearch;
-    private Button btnExecute;
-    private Button btnEdit;
-    private Button btnDelete;
+
     private static final Logger logger = Logger.getLogger(TaskContent.class.getName());
 
-    public TaskContent() {
+    public TaskContent(TaskController controller) {
+        this.controller = controller;
     }
 
     @PostConstruct
     public void initialize() {
         buildContent();
+        setupEventHandlers();
+        controller.initialize();
+    }
+
+    private void setupEventHandlers() {
+        btnAddTask.setOnAction(evt -> controller.handleAdd());
+        btnRefresh.setOnAction(evt -> controller.loadInitialData());
+        btnSearch.setOnAction(evt -> controller.applyFilters());
     }
 
     private void buildContent() {
@@ -171,12 +181,12 @@ public class TaskContent {
                         task -> task.getIsActive(),
                         task -> task.getStateDescription(),
                         120,
-                        null
+                        controller::handleStatusChange
                 )
                 .addActionsColumn("Acciones", 150, List.of(
                         new Table.ActionButton<>("mdomz-play_arrow", "Ejecutar", Styles.SUCCESS, this::handleExecute),
-                        new Table.ActionButton<>("mdral-edit", "Editar", null),
-                        new Table.ActionButton<>("mdal-delete", "Eliminar", Styles.DANGER, null)
+                        new Table.ActionButton<>("mdral-edit", "Editar", controller::handleEdit),
+                        new Table.ActionButton<>("mdal-delete", "Eliminar", Styles.DANGER, controller::handleDelete)
                 ))
                 .setPlaceHolder("No hay tareas programadas", "mdoal-inbox");
 
@@ -233,17 +243,5 @@ public class TaskContent {
 
     public Button getBtnSearch() {
         return btnSearch;
-    }
-
-    public Button getBtnExecute() {
-        return btnExecute;
-    }
-
-    public Button getBtnEdit() {
-        return btnEdit;
-    }
-
-    public Button getBtnDelete() {
-        return btnDelete;
     }
 }
