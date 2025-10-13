@@ -1,14 +1,12 @@
 package org.iclassq.service;
 
 import jakarta.validation.ValidationException;
-import org.iclassq.entity.Frequency;
 import org.iclassq.entity.Task;
-import org.iclassq.entity.TypeTask;
 import org.iclassq.repository.FrequencyRepository;
 import org.iclassq.repository.TaskRepository;
 import org.iclassq.repository.TypeTaskRepository;
 import org.iclassq.validation.TaskValidator;
-import org.iclassq.views.components.Notification;
+import org.iclassq.views.components.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,11 +59,11 @@ public class TaskServiceImpl implements TaskService {
 
         if (!errors.isEmpty()) {
             logger.warning("Errores de validacion: " + errors);
-            Notification.showValidationErrors("Errores de validación", errors);
+            Message.showValidationErrors("Errores de validación", errors);
         }
 
         if (taskRepository.existsByNameAndSourcePath(task.getName(), task.getSourcePath())) {
-            Notification.showError("Error","Ya existe una tarea con ese nombre y ruta");
+            Message.showError("Error","Ya existe una tarea con ese nombre y ruta");
         }
 
         Task savedTask = taskRepository.save(task);
@@ -80,14 +78,14 @@ public class TaskServiceImpl implements TaskService {
         logger.info("Editando tarea con id " + task.getId());
 
         if (!taskRepository.existsById(task.getId())) {
-            Notification.showValidationInfo("Ups!", "La tarea no existe");
+            Message.showValidationInfo("Ups!", "La tarea no existe");
         }
 
         Map<String, String> errors = TaskValidator.validate(task);
 
         if (!errors.isEmpty()) {
             logger.warning("Errores de validacion: " + errors);
-            Notification.showValidationErrors("Errores de validación", errors);
+            Message.showValidationErrors("Errores de validación", errors);
         }
 
         Task updatedTask = taskRepository.save(task);
@@ -105,7 +103,7 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new ValidationException("Tarea no encontrada"));
 
         if (task.getIsActive() != null && task.getIsActive()) {
-            Notification.showValidationInfo("Ups!", "No se puede eliminar una tarea activa");
+            Message.showValidationInfo("Ups!", "No se puede eliminar una tarea activa");
         }
 
         taskRepository.delete(task);

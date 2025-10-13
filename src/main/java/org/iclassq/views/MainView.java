@@ -4,7 +4,6 @@ import atlantafx.base.theme.Styles;
 import jakarta.annotation.PostConstruct;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -13,7 +12,7 @@ import org.iclassq.utils.Fonts;
 import org.iclassq.utils.Utilitie;
 import org.iclassq.utils.ViewNavigator;
 import org.iclassq.views.components.Header;
-import org.iclassq.views.components.Notification;
+import org.iclassq.views.components.Message;
 import org.iclassq.views.components.TabBar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -61,7 +60,7 @@ public class MainView {
 
         root.getChildren().add(contentPane);
 
-        Notification.initialize(root);
+        Message.initialize(root);
 
         return new Scene(root, Utilitie.APP_WIDTH, Utilitie.APP_HEIGHT);
     }

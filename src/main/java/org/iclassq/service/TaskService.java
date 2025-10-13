@@ -1,9 +1,6 @@
 package org.iclassq.service;
 
-import org.iclassq.entity.Frequency;
 import org.iclassq.entity.Task;
-import org.iclassq.entity.TypeTask;
-
 import java.util.List;
 
 public interface TaskService {

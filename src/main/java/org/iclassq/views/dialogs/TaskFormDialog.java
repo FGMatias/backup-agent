@@ -14,7 +14,7 @@ import org.iclassq.entity.Task;
 import org.iclassq.entity.TypeTask;
 import org.iclassq.utils.Fonts;
 import org.iclassq.validation.TaskValidator;
-import org.iclassq.views.components.Notification;
+import org.iclassq.views.components.Message;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 
@@ -22,8 +22,11 @@ import java.io.File;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class TaskFormDialog extends Dialog<Task> {
+    private static final Logger logger = Logger.getLogger(TaskFormDialog.class.getName());
+
     private ComboBox<TypeTask> cboTypeTask;
     private TextField txtName;
     private ComboBox<Frequency> cboFrequency;
@@ -34,7 +37,7 @@ public class TaskFormDialog extends Dialog<Task> {
     private Button btnBrowseSource;
     private Button btnBrowseDestination;
     private TextField txtDatabase;
-    private VBox dynamicForContainer;
+    private VBox dynamicFormContainer;
     private Task taskToEdit;
     private boolean isEditMode = false;
     private List<TypeTask> typeTaskList;
@@ -84,14 +87,16 @@ public class TaskFormDialog extends Dialog<Task> {
         VBox container = new VBox(25);
         container.setPadding(new Insets(25));
         container.setPrefWidth(600);
+        container.setMinHeight(450);
 
         VBox typeSection = createTypeSection();
 
-        dynamicForContainer = new VBox(20);
-        dynamicForContainer.setVisible(false);
-        dynamicForContainer.setManaged(false);
+        dynamicFormContainer = new VBox(20);
+        dynamicFormContainer.setVisible(false);
+        dynamicFormContainer.setManaged(false);
+        dynamicFormContainer.setMinHeight(350);
 
-        container.getChildren().addAll(typeSection, dynamicForContainer);
+        container.getChildren().addAll(typeSection, dynamicFormContainer);
 
         getDialogPane().setContent(container);
     }
@@ -114,6 +119,7 @@ public class TaskFormDialog extends Dialog<Task> {
 
         cboTypeTask.setOnAction(evt -> {
             TypeTask selected = cboTypeTask.getValue();
+            logger.info("Tipo de tarea seleccionado: " + (selected != null ? selected.getDescription() : "null"));
             if (selected != null) {
                 updateFormForType(selected);
             }
@@ -124,9 +130,9 @@ public class TaskFormDialog extends Dialog<Task> {
     }
 
     private void updateFormForType(TypeTask typeTask) {
-        dynamicForContainer.getChildren().clear();
-        dynamicForContainer.setVisible(true);
-        dynamicForContainer.setManaged(true);
+        logger.info("Actualizando formulario para tipo: " + typeTask.getDescription() + " (ID: " + typeTask.getId() + ")");
+
+        dynamicFormContainer.getChildren().clear();
 
         int typeId = typeTask.getId();
 
@@ -144,6 +150,14 @@ public class TaskFormDialog extends Dialog<Task> {
             default:
                 buildGenericForm();
         }
+
+        loadFrequencyOptions();
+
+        dynamicFormContainer.setVisible(true);
+        dynamicFormContainer.setManaged(true);
+        dynamicFormContainer.requestLayout();
+
+        logger.info("Formulario actualizado correctamente");
     }
 
     private void buildBackupDatabaseForm() {
@@ -170,7 +184,7 @@ public class TaskFormDialog extends Dialog<Task> {
         grid.add(txtName, 1, row);
         row++;
 
-        Label lblDatabase = new Label("Nombre de la Base de Datos:");
+        Label lblDatabase = new Label("Base de Datos:");
         lblDatabase.setFont(Fonts.medium(14));
         txtDatabase = new TextField();
         txtDatabase.setPromptText("Ej: test_ventas");
@@ -184,7 +198,7 @@ public class TaskFormDialog extends Dialog<Task> {
 
         HBox destinationBox = new HBox(10);
         txtDestinationPath = new TextField();
-        txtDestinationPath.setPromptText("Selecciona una carpeta de destino");
+        txtDestinationPath.setPromptText("Selecciona dónde guardar el archivo .sql");
         txtDestinationPath.setPrefWidth(320);
 
         btnBrowseDestination = new Button();
@@ -204,7 +218,7 @@ public class TaskFormDialog extends Dialog<Task> {
         addTimePickerField(grid, row);
 
         form.getChildren().addAll(separator, title, grid);
-        dynamicForContainer.getChildren().add(form);
+        dynamicFormContainer.getChildren().add(form);
     }
 
     private void buildFileOperationForm() {
@@ -260,7 +274,7 @@ public class TaskFormDialog extends Dialog<Task> {
 
         HBox destinationBox = new HBox(10);
         txtDestinationPath = new TextField();
-        txtDestinationPath.setPromptText("Selecciona una carpeta de destino");
+        txtDestinationPath.setPromptText("Selecciona la carpeta de destino");
         txtDestinationPath.setPrefWidth(320);
 
         btnBrowseDestination = new Button();
@@ -280,7 +294,7 @@ public class TaskFormDialog extends Dialog<Task> {
         addTimePickerField(grid, row);
 
         form.getChildren().addAll(separator, title, grid);
-        dynamicForContainer.getChildren().add(form);
+        dynamicFormContainer.getChildren().add(form);
     }
 
     private void buildCleanFolderForm() {
@@ -301,7 +315,7 @@ public class TaskFormDialog extends Dialog<Task> {
         Label lblName = new Label("Nombre de la tarea:");
         lblName.setFont(Fonts.medium(14));
         txtName = new TextField();
-        txtName.setPromptText("Ej: Limpiar carpeta videos");
+        txtName.setPromptText("Ej: Limpiar carpeta temporal");
         txtName.setPrefWidth(400);
         grid.add(lblName, 0, row);
         grid.add(txtName, 1, row);
@@ -332,7 +346,7 @@ public class TaskFormDialog extends Dialog<Task> {
         addTimePickerField(grid, row);
 
         form.getChildren().addAll(separator, title, grid);
-        dynamicForContainer.getChildren().add(form);
+        dynamicFormContainer.getChildren().add(form);
     }
 
     private void buildGenericForm() {
@@ -353,7 +367,7 @@ public class TaskFormDialog extends Dialog<Task> {
         grid.add(txtName, 1, 0);
 
         form.getChildren().addAll(title, grid);
-        dynamicForContainer.getChildren().add(form);
+        dynamicFormContainer.getChildren().add(form);
     }
 
     private void addFrequencyField(GridPane grid, int row) {
@@ -361,8 +375,20 @@ public class TaskFormDialog extends Dialog<Task> {
         lblFrequency.setFont(Fonts.medium(14));
 
         cboFrequency = new ComboBox<>();
-        cboFrequency.setPromptText("Selecciona una frecuencia");
+        cboFrequency.setPromptText("Selecciona la frecuencia");
         cboFrequency.setPrefWidth(200);
+
+        cboFrequency.setConverter(new javafx.util.StringConverter<Frequency>() {
+            @Override
+            public String toString(Frequency frequency) {
+                return frequency != null ? frequency.getDescription() : "";
+            }
+
+            @Override
+            public Frequency fromString(String string) {
+                return null;
+            }
+        });
 
         cboFrequency.setOnAction(evt -> updateTimePickerVisibility());
 
@@ -371,7 +397,7 @@ public class TaskFormDialog extends Dialog<Task> {
     }
 
     private void addTimePickerField(GridPane grid, int row) {
-        Label lblTime = new Label("Hora de la ejecución:");
+        Label lblTime = new Label("Hora de ejecución:");
         lblTime.setFont(Fonts.medium(14));
         lblTime.setId("lblTime");
 
@@ -443,12 +469,12 @@ public class TaskFormDialog extends Dialog<Task> {
 
         boolean showTimePicker = frequency.getId() != 1;
 
-        dynamicForContainer.lookupAll("#lblTime").forEach(node -> {
+        dynamicFormContainer.lookupAll("#lblTime").forEach(node -> {
             node.setVisible(showTimePicker);
             node.setManaged(showTimePicker);
         });
 
-        dynamicForContainer.lookupAll("#timeBox").forEach(node -> {
+        dynamicFormContainer.lookupAll("#timeBox").forEach(node -> {
             node.setVisible(showTimePicker);
             node.setManaged(showTimePicker);
         });
@@ -461,7 +487,6 @@ public class TaskFormDialog extends Dialog<Task> {
         String currentPath = targetField.getText();
         if (currentPath != null && !currentPath.isEmpty()) {
             File currentDir = new File(currentPath);
-
             if (currentDir.exists()) {
                 chooser.setInitialDirectory(currentDir);
             }
@@ -483,7 +508,7 @@ public class TaskFormDialog extends Dialog<Task> {
         Map<String, String> errors = TaskValidator.validate(tempTask);
 
         if (!errors.isEmpty()) {
-            Notification.showValidationErrors("Errores de validación", errors);
+            Message.showValidationErrors("Errores de validación", errors);
             return false;
         }
 
@@ -493,32 +518,56 @@ public class TaskFormDialog extends Dialog<Task> {
     private void setupResultConverter() {
         setResultConverter(dialogButton -> {
             if (dialogButton.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
-                if (validateForm()) {
-                    return buildTaskFromForm();
-                }
+                return buildTaskFromForm();
             }
-
             return null;
         });
     }
 
     private Task buildTaskFromForm() {
+        TypeTask type = cboTypeTask.getValue();
+        if (type == null) {
+            Message.showWarning("Campo requerido", "Debes seleccionar un tipo de tarea");
+            return null;
+        }
+
+        if (txtName == null || txtName.getText().trim().isEmpty()) {
+            Message.showWarning("Campo requerido", "El nombre de la tarea es obligatorio");
+            return null;
+        }
+
+        if (cboFrequency == null || cboFrequency.getValue() == null) {
+            Message.showWarning("Campo requerido", "Debes seleccionar una frecuencia");
+            return null;
+        }
+
         Task task = isEditMode ? taskToEdit : new Task();
 
         task.setName(txtName.getText().trim());
-        task.setType(cboTypeTask.getValue());
+        task.setType(type);
         task.setFrequency(cboFrequency.getValue());
 
-        int typeId = cboTypeTask.getValue().getId();
+        int typeId = type.getId();
 
         if (typeId == 1) {
-            task.setSourcePath(txtDestinationPath.getText().trim());
-            task.setDatabase(txtDatabase.getText().trim());
+            task.setSourcePath(null);
+            if (txtDestinationPath != null && !txtDestinationPath.getText().trim().isEmpty()) {
+                task.setDestinationPath(txtDestinationPath.getText().trim());
+            }
+            if (txtDatabase != null && !txtDatabase.getText().trim().isEmpty()) {
+                task.setDatabase(txtDatabase.getText().trim());
+            }
         } else if (typeId == 2 || typeId == 3) {
-            task.setSourcePath(txtSourcePath.getText().trim());
-            task.setDestinationPath(txtDestinationPath.getText().trim());
+            if (txtSourcePath != null && !txtSourcePath.getText().trim().isEmpty()) {
+                task.setSourcePath(txtSourcePath.getText().trim());
+            }
+            if (txtDestinationPath != null && !txtDestinationPath.getText().trim().isEmpty()) {
+                task.setDestinationPath(txtDestinationPath.getText().trim());
+            }
         } else if (typeId == 4) {
-            task.setSourcePath(txtSourcePath.getText().trim());
+            if (txtSourcePath != null && !txtSourcePath.getText().trim().isEmpty()) {
+                task.setSourcePath(txtSourcePath.getText().trim());
+            }
             task.setDestinationPath(null);
         }
 
@@ -543,17 +592,21 @@ public class TaskFormDialog extends Dialog<Task> {
 
         txtName.setText(taskToEdit.getName());
 
-        if (taskToEdit.getSourcePath() != null) {
+        if (taskToEdit.getSourcePath() != null && txtSourcePath != null) {
             txtSourcePath.setText(taskToEdit.getSourcePath());
         }
 
-        if (taskToEdit.getDestinationPath() != null) {
+        if (taskToEdit.getDestinationPath() != null && txtDestinationPath != null) {
             txtDestinationPath.setText(taskToEdit.getDestinationPath());
+        }
+
+        if (taskToEdit.getDatabase() != null && txtDatabase != null) {
+            txtDatabase.setText(taskToEdit.getDatabase());
         }
 
         cboFrequency.setValue(taskToEdit.getFrequency());
 
-        if (taskToEdit.getScheduleTime() != null) {
+        if (taskToEdit.getScheduleTime() != null && spinnerHour != null && spinnerMinute != null) {
             spinnerHour.getValueFactory().setValue(taskToEdit.getScheduleTime().getHour());
             spinnerMinute.getValueFactory().setValue(taskToEdit.getScheduleTime().getMinute());
         }
@@ -562,18 +615,18 @@ public class TaskFormDialog extends Dialog<Task> {
     public void setTypeOptions(List<TypeTask> types) {
         this.typeTaskList = types;
         cboTypeTask.getItems().setAll(types);
+        logger.info("Tipos de tarea cargados: " + types.size());
     }
 
     public void setFrequencyOptions(List<Frequency> frequencies) {
         this.frequencyList = frequencies;
-        if (cboFrequency != null) {
-            cboFrequency.getItems().setAll(frequencies);
-        }
+        logger.info("Frecuencias cargadas: " + frequencies.size());
     }
 
     private void loadFrequencyOptions() {
         if (frequencyList != null && cboFrequency != null) {
             cboFrequency.getItems().setAll(frequencyList);
+            logger.info("Frecuencias cargadas en el ComboBox");
         }
     }
 }

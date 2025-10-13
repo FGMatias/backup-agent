@@ -1,6 +1,5 @@
 package org.iclassq.views.components;
 
-import atlantafx.base.controls.Message;
 import atlantafx.base.util.Animations;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
@@ -16,10 +15,10 @@ import org.kordamp.ikonli.material2.Material2OutlinedMZ;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class Notification {
+public class Message {
     private static StackPane notificationContainer;
     private static final double DEFAULT_DURATION = 3.0;
-    private static final Logger logger = Logger.getLogger(Notification.class.getName());
+    private static final Logger logger = Logger.getLogger(Message.class.getName());
 
     public static void initialize(StackPane container) {
         notificationContainer = container;
@@ -144,7 +143,7 @@ public class Notification {
             logger.severe("Container de notificacion no inicializado");
         }
 
-        Message message = new Message(
+        atlantafx.base.controls.Message message = new atlantafx.base.controls.Message(
                 title,
                 content,
                 new FontIcon(icon)
