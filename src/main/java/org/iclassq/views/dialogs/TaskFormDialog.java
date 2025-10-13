@@ -55,9 +55,9 @@ public class TaskFormDialog extends Dialog<Task> {
         buildContent();
         setupResultConverter();
 
-        if (isEditMode) {
-            loadTaskData();
-        }
+//        if (isEditMode) {
+//            loadTaskData();
+//        }
     }
 
     private void initializeDialog() {
@@ -590,7 +590,9 @@ public class TaskFormDialog extends Dialog<Task> {
         cboTypeTask.setValue(taskToEdit.getType());
         updateFormForType(taskToEdit.getType());
 
-        txtName.setText(taskToEdit.getName());
+        if (txtName != null) {
+            txtName.setText(taskToEdit.getName());
+        }
 
         if (taskToEdit.getSourcePath() != null && txtSourcePath != null) {
             txtSourcePath.setText(taskToEdit.getSourcePath());
@@ -604,7 +606,10 @@ public class TaskFormDialog extends Dialog<Task> {
             txtDatabase.setText(taskToEdit.getDatabaseName());
         }
 
-        cboFrequency.setValue(taskToEdit.getFrequency());
+        if (taskToEdit.getFrequency() != null && cboFrequency != null) {
+            cboFrequency.setValue(taskToEdit.getFrequency());
+            updateTimePickerVisibility();
+        }
 
         if (taskToEdit.getScheduleTime() != null && spinnerHour != null && spinnerMinute != null) {
             spinnerHour.getValueFactory().setValue(taskToEdit.getScheduleTime().getHour());
@@ -621,6 +626,10 @@ public class TaskFormDialog extends Dialog<Task> {
     public void setFrequencyOptions(List<Frequency> frequencies) {
         this.frequencyList = frequencies;
         logger.info("Frecuencias cargadas: " + frequencies.size());
+
+        if (isEditMode && taskToEdit != null) {
+            loadTaskData();
+        }
     }
 
     private void loadFrequencyOptions() {

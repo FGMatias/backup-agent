@@ -22,12 +22,6 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private TaskRepository taskRepository;
 
-    @Autowired
-    private TypeTaskRepository typeTaskRepository;
-
-    @Autowired
-    private FrequencyRepository frequencyRepository;
-
     @Override
     public Long count() {
         logger.info("Obteniendo cantidad de tareas");

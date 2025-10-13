@@ -18,7 +18,9 @@ import org.iclassq.utils.Fonts;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -383,6 +385,7 @@ public class Table<T> extends VBox {
 
         column.setCellFactory(col -> new TableCell<T, Void>() {
             private final HBox buttons = new HBox(5);
+            private final Map<ActionButton<T>, Button> buttonMap = new HashMap<>();
 
             {
                 buttons.setAlignment(Pos.CENTER);
@@ -404,19 +407,41 @@ public class Table<T> extends VBox {
                         btn.setTooltip(new Tooltip(action.getTooltip()));
                     }
 
-                    buttons.getChildren().add(btn);
-
                     btn.setOnAction(evt -> {
                         T item = getTableView().getItems().get(getIndex());
                         action.getAction().accept(item);
                     });
+
+                    buttonMap.put(action, btn);
+                    buttons.getChildren().add(btn);
                 }
             }
 
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : buttons);
+
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    T rowItem = getTableView().getItems().get(getIndex());
+
+                    for (Map.Entry<ActionButton<T>, Button> entry : buttonMap.entrySet()) {
+                        ActionButton<T> action = entry.getKey();
+                        Button btn = entry.getValue();
+
+                        if (action.getVisibilityCondition() != null) {
+                            boolean shouldBeVisible = action.getVisibilityCondition().apply(rowItem);
+                            btn.setVisible(shouldBeVisible);
+                            btn.setManaged(shouldBeVisible);
+                        } else {
+                            btn.setVisible(true);
+                            btn.setManaged(true);
+                        }
+                    }
+
+                    setGraphic(buttons);
+                }
             }
         });
 
@@ -668,8 +693,23 @@ public class Table<T> extends VBox {
 
                     T item = getTableView().getItems().get(getIndex());
 
+                    boolean previousState = oldValue;
+
                     if (onToggle != null) {
-                        onToggle.accept(item, newValue);
+                        isUpdating = true;
+
+                        try {
+                            onToggle.accept(item, newValue);
+
+                            Boolean currentItemState = statusExtractor.apply(item);
+
+                            if (currentItemState != null && currentItemState != newValue) {
+                                toggleSwitch.setSelected(currentItemState);
+                                updateLabelStyle(currentItemState);
+                            }
+                        } finally {
+                            isUpdating = false;
+                        }
                     }
                 });
             }
@@ -701,6 +741,14 @@ public class Table<T> extends VBox {
                     setGraphic(container);
                 }
             }
+
+            private void updateLabelStyle(boolean isActive) {
+                label.setStyle(
+                        isActive
+                            ? "-fx-text-fill: -color-success-emphasis; -fx-font-weight: bold;"
+                            : "-fx-text-fill: -color-danger-emphasis;"
+                );
+            }
         });
 
         tableView.getColumns().add(column);
@@ -729,20 +777,26 @@ public class Table<T> extends VBox {
         private final String tooltip;
         private final String styleClass;
         private final Consumer<T> action;
+        private final Function<T, Boolean> visibilityCondition;
 
-        public ActionButton(String icon, String tooltip, String styleClass, Consumer<T> action) {
+        public ActionButton(String icon, String tooltip, String styleClass, Consumer<T> action, Function<T, Boolean> visibilityCondition) {
             this.icon = icon;
             this.tooltip = tooltip;
             this.styleClass = styleClass;
             this.action = action;
+            this.visibilityCondition = visibilityCondition;
+        }
+
+        public ActionButton(String icon, String tooltip, String styleClass, Consumer<T> action) {
+            this(icon, tooltip, styleClass, action, null);
         }
 
         public ActionButton(String icon, String tooltip, Consumer<T> action) {
-            this(icon, tooltip, null, action);
+            this(icon, tooltip, null, action, null);
         }
 
         public ActionButton(String icon, Consumer<T> action) {
-            this(icon, null, null, action);
+            this(icon, null, null, action, null);
         }
 
         public String getIcon() {
@@ -759,6 +813,10 @@ public class Table<T> extends VBox {
 
         public Consumer<T> getAction() {
             return action;
+        }
+
+        public Function<T, Boolean> getVisibilityCondition() {
+            return visibilityCondition;
         }
     }
 }

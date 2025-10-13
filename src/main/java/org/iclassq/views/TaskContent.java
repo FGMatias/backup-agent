@@ -13,16 +13,18 @@ import org.iclassq.views.components.Table;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2MZ;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 @Component
 public class TaskContent {
-    private final TaskController controller;
-
     private VBox mainContent;
     private Table<Task> taskTable;
     private TextField searchField;
@@ -33,23 +35,36 @@ public class TaskContent {
     private Button btnRefresh;
     private Button btnSearch;
 
+    private Consumer<Task> onEdit;
+    private Consumer<Task> onDelete;
+    private Consumer<Task> onExecute;
+    private BiConsumer<Task, Boolean> onStatusChange;
+    private Runnable onAdd;
+    private Runnable onRefresh;
+    private Runnable onSearch;
+
     private static final Logger logger = Logger.getLogger(TaskContent.class.getName());
 
-    public TaskContent(TaskController controller) {
-        this.controller = controller;
+    public TaskContent() {
+
     }
 
     @PostConstruct
     public void initialize() {
         buildContent();
         setupEventHandlers();
-        controller.initialize();
     }
 
     private void setupEventHandlers() {
-        btnAddTask.setOnAction(evt -> controller.handleAdd());
-        btnRefresh.setOnAction(evt -> controller.loadInitialData());
-        btnSearch.setOnAction(evt -> controller.applyFilters());
+        btnAddTask.setOnAction(evt -> {
+            if (onAdd != null) onAdd.run();
+        });
+        btnRefresh.setOnAction(evt -> {
+            if (onRefresh != null) onRefresh.run();
+        });
+        btnSearch.setOnAction(evt -> {
+            if (onSearch != null) onSearch.run();
+        });
     }
 
     private void buildContent() {
@@ -172,7 +187,7 @@ public class TaskContent {
                     return task.getScheduleTime().format(DateTimeFormatter.ofPattern("HH:mm"));
                 })
                 .addColumnWithDefault("Base de Datos", "databaseName", 120, "N/A")
-                .addColumn("Ruta Origen", "sourcePath", 200)
+                .addColumnWithDefault("Ruta Origen", "sourcePath", 200, "-")
                 .addColumnWithDefault("Ruta Destino", "destinationPath", 200, "N/A")
                 .addColumnWithDefault("Extensión", "fileExtension", 100, "CENTER", "-")
                 .addColumn("Frecuencia", "frequency", 100)
@@ -181,12 +196,36 @@ public class TaskContent {
                         task -> task.getIsActive(),
                         task -> task.getStateDescription(),
                         120,
-                        controller::handleStatusChange
+                        (task, isActive) -> {
+                            if (onStatusChange != null) onStatusChange.accept(task, isActive);
+                        }
                 )
                 .addActionsColumn("Acciones", 150, List.of(
-                        new Table.ActionButton<>("mdomz-play_arrow", "Ejecutar", Styles.SUCCESS, this::handleExecute),
-                        new Table.ActionButton<>("mdral-edit", "Editar", controller::handleEdit),
-                        new Table.ActionButton<>("mdal-delete", "Eliminar", Styles.DANGER, controller::handleDelete)
+                        new Table.ActionButton<>(
+                                "mdomz-play_arrow",
+                                "Ejecutar",
+                                Styles.SUCCESS,
+                                task -> {
+                                    if (onExecute != null) onExecute.accept(task);
+                                },
+                                task -> task.getIsActive() != null && task.getIsActive()
+                        ),
+                        new Table.ActionButton<>(
+                                "mdral-edit",
+                                "Editar",
+                                task -> {
+                                    if (onEdit != null) onEdit.accept(task);
+                                }
+                        ),
+                        new Table.ActionButton<>(
+                                "mdal-delete",
+                                "Eliminar",
+                                Styles.DANGER,
+                                task -> {
+                                    if (onDelete != null) onDelete.accept(task);
+                                },
+                                task -> task.getIsActive() == null || !task.getIsActive()
+                        )
                 ))
                 .setPlaceHolder("No hay tareas programadas", "mdoal-inbox");
 
@@ -196,17 +235,40 @@ public class TaskContent {
         return container;
     }
 
-    private void handleExecute(Task task) {
-        System.out.println("Ejecutar tarea: " + task.getId());
-        // Ejecutar tarea inmediatamente
-    }
-
     public void refreshTable(List<Task> tasks) {
         taskTable.setData(tasks);
     }
 
     public void updateTaskCount(long count) {
         totalTasksLabel.setText(count + " tareas");
+    }
+
+    public void setOnAdd(Runnable callback) {
+        this.onAdd = callback;
+    }
+
+    public void setOnEdit(Consumer<Task> callback) {
+        this.onEdit = callback;
+    }
+
+    public void setOnDelete(Consumer<Task> callback) {
+        this.onDelete = callback;
+    }
+
+    public void setOnExecute(Consumer<Task> callback) {
+        this.onExecute = callback;
+    }
+
+    public void setOnStatusChange(BiConsumer<Task, Boolean> callback) {
+        this.onStatusChange = callback;
+    }
+
+    public void setOnRefresh(Runnable callback) {
+        this.onRefresh = callback;
+    }
+
+    public void setOnSearch(Runnable callback) {
+        this.onSearch = callback;
     }
 
     public VBox getMainContent() {

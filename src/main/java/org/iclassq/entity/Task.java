@@ -27,7 +27,6 @@ public class Task {
     @Column(name = "database_name")
     private String databaseName;
 
-    @NotBlank(message = "La ruta de origen es obligatoria")
     @Column(name = "source_path")
     private String sourcePath;
 

@@ -14,10 +14,13 @@ public class History {
 
     @ManyToOne
     @JoinColumn(name = "task_id", referencedColumnName = "id")
-    private Task task;
+    private Task taskId;
 
     @Column(name = "task_name")
     private String taskName;
+
+    @Column(name = "message")
+    private String message;
 
     @ManyToOne
     @JoinColumn(name = "type", referencedColumnName = "id")
@@ -50,12 +53,12 @@ public class History {
         this.id = id;
     }
 
-    public Task getTask() {
-        return task;
+    public Task getTaskId() {
+        return taskId;
     }
 
-    public void setTask(Task task) {
-        this.task = task;
+    public void setTaskId(Task taskId) {
+        this.taskId = taskId;
     }
 
     public String getTaskName() {
@@ -64,6 +67,14 @@ public class History {
 
     public void setTaskName(String taskName) {
         this.taskName = taskName;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public TypeTask getTypeTask() {

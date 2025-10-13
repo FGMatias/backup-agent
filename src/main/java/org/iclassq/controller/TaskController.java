@@ -5,12 +5,14 @@ import jakarta.annotation.PostConstruct;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import org.iclassq.entity.Task;
+import org.iclassq.scheduler.TaskScheduler;
 import org.iclassq.service.FrequencyService;
 import org.iclassq.service.TaskService;
 import org.iclassq.service.TypeTaskService;
 import org.iclassq.views.TaskContent;
 import org.iclassq.views.components.Message;
 import org.iclassq.views.dialogs.TaskFormDialog;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
@@ -25,32 +27,41 @@ public class TaskController {
     private final TaskService taskService;
     private final TypeTaskService typeTaskService;
     private final FrequencyService frequencyService;
+    private final TaskScheduler taskScheduler;
 
     private Map<String, Integer> statusMap = new HashMap<>();
 
     private static final Logger logger = Logger.getLogger(TaskController.class.getName());
 
     public TaskController(
-            @Lazy TaskContent view,
+            TaskContent view,
             TaskService taskService,
             TypeTaskService typeTaskService,
-            FrequencyService frequencyService
+            FrequencyService frequencyService,
+            TaskScheduler taskScheduler
     ) {
         this.view = view;
         this.taskService = taskService;
         this.typeTaskService = typeTaskService;
         this.frequencyService = frequencyService;
+        this.taskScheduler = taskScheduler;
     }
 
-//    @PostConstruct
-//    private void init() {
-//        loadStatus();
-//        loadInitialData();
-//    }
-
-    public void initialize() {
+    @PostConstruct
+    private void initialize() {
+        setupEventHandlers();
         loadStatus();
         loadInitialData();
+    }
+
+    private void setupEventHandlers() {
+        view.setOnAdd(this::handleAdd);
+        view.setOnEdit(this::handleEdit);
+        view.setOnDelete(this::handleDelete);
+        view.setOnExecute(this::handleExecute);
+        view.setOnStatusChange(this::handleStatusChange);
+        view.setOnRefresh(this::loadInitialData);
+        view.setOnSearch(this::applyFilters);
     }
 
     private void loadStatus() {
@@ -170,30 +181,57 @@ public class TaskController {
         }
     }
 
-    public void handleStatusChange(Task task, Boolean isActive) {
+    public void handleExecute(Task task) {
+        logger.info("Ejecutar tarea manualmente: " + task.getId());
+
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle(isActive ? "Confirmar inactivación" : "Confirmar activación");
-        confirmation.setHeaderText(isActive ? "¿Desea inactivar esta tarea?" : "¿Desea activar esta tarea?");
+        confirmation.setTitle("Confirmar ejecución");
+        confirmation.setHeaderText("¿Ejecutar esta tarea ahora?");
         confirmation.setContentText("Tarea: " + task.getName());
 
         Optional<ButtonType> result = confirmation.showAndWait();
 
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                task.setIsActive(isActive);
+                taskScheduler.executeTaskManually(task);
+
+                Message.showSuccess(
+                        "Tarea en ejecución",
+                        "La tarea '" + task.getName() + "' se está ejecutando"
+                );
+            } catch (Exception e) {
+                logger.severe("Error al ejecutar tarea: " + e.getMessage());
+                Message.showError("Error", "No se pudo ejecutar la tarea");
+            }
+        }
+    }
+
+    public void handleStatusChange(Task task, Boolean newIsActive) {
+        Boolean originalState = task.getIsActive();
+
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle(newIsActive ? "Confirmar activación" : "Confirmar inactivación");
+        confirmation.setHeaderText(newIsActive ? "¿Desea activar esta tarea?" : "¿Desea inactivar esta tarea?");
+        confirmation.setContentText("Tarea: " + task.getName());
+
+        Optional<ButtonType> result = confirmation.showAndWait();
+
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                task.setIsActive(newIsActive);
                 taskService.update(task);
 
                 logger.info(String.format(
                         "Tarea '%s' -> %s",
                         task.getName(),
-                        isActive ? "Activo" : "Inactiva"
+                        newIsActive ? "Activo" : "Inactiva"
                 ));
 
                 Message.showSuccess(
                         "Estado actualizado",
                         String.format("'%s' ahora está %s",
                                 task.getName(),
-                                isActive ? "Activo" : "Inactivo"
+                                newIsActive ? "Activo" : "Inactivo"
                         )
                 );
 
@@ -204,8 +242,13 @@ public class TaskController {
                         "Error",
                         "No se pudo actualizar el estado"
                 );
+                task.setIsActive(originalState);
                 view.refreshTable(taskService.findAll());
             }
+        } else {
+            logger.info("Cambio de estado cancelado por el usuario");
+            task.setIsActive(originalState);
+            view.refreshTable(taskService.findAll());
         }
     }
 
@@ -234,10 +277,11 @@ public class TaskController {
             view.updateTaskCount(taskService.count());
         } catch (Exception e) {
             logger.severe("Error al cargar las tareas: " + e.getMessage());
-            Message.showError(
-                    "Error",
-                    "No se pudieron cargar las tareas"
-            );
+            try {
+                Message.showError("Error", "No se pudieron cargar las tareas");
+            } catch (Exception msgError) {
+                logger.warning("No se pudo mostrar mensaje de error: " + msgError.getMessage());
+            }
         }
     }
 }
