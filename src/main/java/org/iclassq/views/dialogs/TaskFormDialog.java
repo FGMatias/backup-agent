@@ -555,7 +555,7 @@ public class TaskFormDialog extends Dialog<Task> {
                 task.setDestinationPath(txtDestinationPath.getText().trim());
             }
             if (txtDatabase != null && !txtDatabase.getText().trim().isEmpty()) {
-                task.setDatabase(txtDatabase.getText().trim());
+                task.setDatabaseName(txtDatabase.getText().trim());
             }
         } else if (typeId == 2 || typeId == 3) {
             if (txtSourcePath != null && !txtSourcePath.getText().trim().isEmpty()) {
@@ -600,8 +600,8 @@ public class TaskFormDialog extends Dialog<Task> {
             txtDestinationPath.setText(taskToEdit.getDestinationPath());
         }
 
-        if (taskToEdit.getDatabase() != null && txtDatabase != null) {
-            txtDatabase.setText(taskToEdit.getDatabase());
+        if (taskToEdit.getDatabaseName() != null && txtDatabase != null) {
+            txtDatabase.setText(taskToEdit.getDatabaseName());
         }
 
         cboFrequency.setValue(taskToEdit.getFrequency());

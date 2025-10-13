@@ -4,7 +4,10 @@ import atlantafx.base.util.Animations;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.iclassq.enums.MessageType;
 import org.kordamp.ikonli.Ikon;
@@ -47,7 +50,7 @@ public class Message {
         show(
             title,
             content,
-            Material2OutlinedMZ.OUTLINED_FLAG,
+            Material2OutlinedMZ.WARNING,
             MessageType.WARNING
         );
     }
@@ -99,9 +102,7 @@ public class Message {
         if (errors == null || errors.isEmpty()) return;
 
         if (errors.size() == 1) {
-            Map.Entry<String, String> entry = errors.entrySet()
-                                                    .iterator()
-                                                    .next();
+            Map.Entry<String, String> entry = errors.entrySet().iterator().next();
             showWarning(title, entry.getValue());
             return;
         }
@@ -117,8 +118,8 @@ public class Message {
             message.append("- ").append(error);
             count++;
 
-            if (count >= 5) {
-                int remaining = errors.size() - 5;
+            if (count >= 3) {
+                int remaining = errors.size() - 3;
                 if (remaining > 0) {
                     message.append("\n... y ").append(remaining).append(" más");
                 }
@@ -141,6 +142,7 @@ public class Message {
     ) {
         if (notificationContainer == null) {
             logger.severe("Container de notificacion no inicializado");
+            return;
         }
 
         atlantafx.base.controls.Message message = new atlantafx.base.controls.Message(
@@ -150,19 +152,39 @@ public class Message {
         );
         message.getStyleClass().add(messageType.getStyleClass());
 
-        StackPane.setAlignment(message, Pos.TOP_RIGHT);
-        StackPane.setMargin(message, new Insets(20,20,0,0));
+        VBox wrapper = new VBox(message);
+        wrapper.setMaxWidth(400);
+        wrapper.setMaxHeight(150);
+        wrapper.setPrefWidth(400);
+        wrapper.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        wrapper.setAlignment(Pos.TOP_RIGHT);
 
-        notificationContainer.getChildren().add(message);
-
-        Animations.flash(message).playFromStart();
-        message.setOnClose(evt -> {
-            Animations.flash(message).playFromStart();
-
-            PauseTransition removeDelay = new PauseTransition(Duration.seconds(DEFAULT_DURATION));
-            removeDelay.setOnFinished(e -> notificationContainer.getChildren().remove(message));
-            removeDelay.play();
-        });
+        VBox.setVgrow(message, Priority.NEVER);
         message.setMaxWidth(400);
+        message.setMaxHeight(150);
+
+        StackPane.setAlignment(wrapper, Pos.TOP_RIGHT);
+        StackPane.setMargin(wrapper, new Insets(20, 20, 0, 0));
+
+        notificationContainer.getChildren().add(wrapper);
+
+        Animations.slideInDown(wrapper, Duration.millis(300)).playFromStart();
+
+        PauseTransition autoClose = new PauseTransition(Duration.seconds(DEFAULT_DURATION));
+
+        message.setOnClose(evt -> {
+            autoClose.stop();
+            var slideOut = Animations.slideOutUp(wrapper, Duration.millis(250));
+            slideOut.setOnFinished(e -> notificationContainer.getChildren().remove(wrapper));
+            slideOut.playFromStart();
+        });
+
+        autoClose.setOnFinished(e -> {
+            var slideOut = Animations.slideOutUp(wrapper, Duration.millis(250));
+            slideOut.setOnFinished(ev -> notificationContainer.getChildren().remove(wrapper));
+            slideOut.playFromStart();
+        });
+
+        autoClose.play();
     }
 }

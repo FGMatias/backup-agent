@@ -58,9 +58,13 @@ public class MainView {
 
         loadContent(TabType.DASHBOARD);
 
-        root.getChildren().add(contentPane);
+        StackPane notificationLayer = new StackPane();
+        notificationLayer.setPickOnBounds(false);
+        notificationLayer.setMouseTransparent(false);
 
-        Message.initialize(root);
+        root.getChildren().addAll(contentPane, notificationLayer);
+
+        Message.initialize(notificationLayer);
 
         return new Scene(root, Utilitie.APP_WIDTH, Utilitie.APP_HEIGHT);
     }

@@ -24,8 +24,8 @@ public class Task {
     @JoinColumn(name = "type", referencedColumnName = "id")
     private TypeTask type;
 
-    @Column(name = "database")
-    private String database;
+    @Column(name = "database_name")
+    private String databaseName;
 
     @NotBlank(message = "La ruta de origen es obligatoria")
     @Column(name = "source_path")
@@ -72,12 +72,12 @@ public class Task {
         this.type = type;
     }
 
-    public String getDatabase() {
-        return database;
+    public String getDatabaseName() {
+        return databaseName;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
+    public void setDatabaseName(String databaseName) {
+        this.databaseName = databaseName;
     }
 
     public String getSourcePath() {

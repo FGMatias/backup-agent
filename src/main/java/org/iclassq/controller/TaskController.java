@@ -52,6 +52,8 @@ public class TaskController {
         view.getBtnAddTask().setOnAction(evt -> handleAdd());
         view.getBtnRefresh().setOnAction(evt -> loadInitialData());
         view.getBtnSearch().setOnMouseClicked(evt -> applyFilters());
+        view.getBtnEdit().setOnMouseClicked(evt -> handleEdit());
+        view.getBtnDelete().setOnMouseClicked(evt -> handleDelete());
     }
 
     private void loadStatus() {
@@ -73,20 +75,6 @@ public class TaskController {
         }
     }
 
-    private void countTasks() {
-        try {
-            Long count = taskService.count();
-            String result = count.toString().concat(" tareas");
-
-            view.getTotalTasksLabel().setText(result);
-
-            logger.info("Total de tareas: " + result);
-        } catch (Exception e) {
-            logger.severe("Error al obtener la cantidad de tareas: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
-
     public void handleAdd() {
         try {
             TaskFormDialog dialog = new TaskFormDialog();
@@ -95,6 +83,8 @@ public class TaskController {
             dialog.setFrequencyOptions(frequencyService.findAll());
 
             Optional<Task> result = dialog.showAndWait();
+
+            logger.info("Result present: " + result.isPresent());
 
             result.ifPresent(task -> {
                 try {
