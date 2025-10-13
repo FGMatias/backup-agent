@@ -24,6 +24,9 @@ public class Task {
     @JoinColumn(name = "type", referencedColumnName = "id")
     private TypeTask type;
 
+    @Column(name = "database")
+    private String database;
+
     @NotBlank(message = "La ruta de origen es obligatoria")
     @Column(name = "source_path")
     private String sourcePath;
@@ -67,6 +70,14 @@ public class Task {
 
     public void setType(TypeTask type) {
         this.type = type;
+    }
+
+    public String getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
     }
 
     public String getSourcePath() {
@@ -113,8 +124,8 @@ public class Task {
         return isActive;
     }
 
-    public void setIsActive(Boolean active) {
-        this.isActive = active;
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 
     public String getStateDescription() {

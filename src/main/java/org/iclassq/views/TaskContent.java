@@ -8,10 +8,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 //import org.iclassq.controller.TasksController;
 import org.iclassq.entity.Task;
+import org.iclassq.service.FrequencyService;
 import org.iclassq.service.TaskService;
+import org.iclassq.service.TypeTaskService;
 import org.iclassq.utils.Fonts;
 import org.iclassq.views.components.Notification;
 import org.iclassq.views.components.Table;
+import org.iclassq.views.dialogs.TaskFormDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2MZ;
@@ -19,11 +22,15 @@ import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 @Component
 public class TaskContent {
     private final TaskService taskService;
+    private final TypeTaskService typeTaskService;
+    private final FrequencyService frequencyService;
+
     private VBox mainContent;
     private Table<Task> taskTable;
     private TextField searchField;
@@ -35,8 +42,14 @@ public class TaskContent {
     private Button btnSearch;
     private static final Logger logger = Logger.getLogger(TaskContent.class.getName());
 
-    public TaskContent(TaskService taskService) {
+    public TaskContent(
+            TaskService taskService,
+            TypeTaskService typeTaskService,
+            FrequencyService frequencyService
+    ) {
         this.taskService = taskService;
+        this.typeTaskService = typeTaskService;
+        this.frequencyService = frequencyService;
     }
 
     @PostConstruct
@@ -90,6 +103,8 @@ public class TaskContent {
         btnAddTask.setGraphic(new FontIcon(Material2AL.ADD_CIRCLE_OUTLINE));
         btnAddTask.getStyleClass().addAll(Styles.ACCENT, Styles.BUTTON_OUTLINED);
         btnAddTask.setFont(Fonts.semiBold(16));
+
+        btnAddTask.setOnAction(evt -> handleAddTask());
 
         btnRefresh = new Button();
         btnRefresh.setGraphic(new FontIcon(Material2MZ.REFRESH));
@@ -348,6 +363,40 @@ public class TaskContent {
 //        return footer;
 //    }
 
+    private void handleAddTask() {
+        try {
+            TaskFormDialog dialog = new TaskFormDialog();
+
+            dialog.setTypeOptions(typeTaskService.findAll());
+            dialog.setFrequencyOptions(frequencyService.findAll());
+
+            Optional<Task> result = dialog.showAndWait();
+
+            result.ifPresent(task -> {
+                try {
+                    Task savedTask = taskService.save(task);
+
+                    taskTable.addItem(savedTask);
+
+                    Notification.showSuccess(
+                            "Tarea creada",
+                            "La tarea '" + savedTask.getName() + "' se creó correctamente"
+                    );
+
+                    logger.info("Tarea creada correctamente: " + savedTask.getId());
+                } catch (Exception e) {
+                    logger.severe("Error al guardar la tarea: " + e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            logger.severe("Error al abrir el modal: " + e.getMessage());
+            Notification.showError(
+                    "Error!",
+                    "No se pudo abrir el formulario de tarea"
+            );
+        }
+    }
+
     private void handleStatusChange(Task task, Boolean isActive) {
         try {
             task.setIsActive(isActive);
@@ -376,8 +425,37 @@ public class TaskContent {
     }
 
     private void handleEdit(Task task) {
-        System.out.println("Editar tarea: " + task.getId());
-        // Abrir diálogo de edición
+        try {
+            TaskFormDialog dialog = new TaskFormDialog(task);
+
+            dialog.setTypeOptions(typeTaskService.findAll());
+            dialog.setFrequencyOptions(frequencyService.findAll());
+
+            Optional<Task> result = dialog.showAndWait();
+
+            result.ifPresent(updatedTask -> {
+                try {
+                    taskService.update(updatedTask);
+
+                    taskTable.refresh();
+
+                    Notification.showSuccess(
+                            "Tarea actualizada",
+                            "Los cambios se guardaron correctamente"
+                    );
+
+                    logger.info("Tarea actualizada: " + updatedTask.getId());
+                } catch (Exception e) {
+                    logger.severe("Error al actualizar la tarea: " + e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            logger.severe("Error al abrir el modal de edicion: " + e.getMessage());
+            Notification.showError(
+                    "Error",
+                    "No se pudo abrir el formulario de edición"
+            );
+        }
     }
 
     private void handleDelete(Task task) {

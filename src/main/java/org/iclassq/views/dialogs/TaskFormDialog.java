@@ -8,14 +8,20 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import org.iclassq.entity.Frequency;
 import org.iclassq.entity.Task;
 import org.iclassq.entity.TypeTask;
 import org.iclassq.utils.Fonts;
+import org.iclassq.validation.TaskValidator;
+import org.iclassq.views.components.Notification;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 
+import java.io.File;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 public class TaskFormDialog extends Dialog<Task> {
     private ComboBox<TypeTask> cboTypeTask;
@@ -97,7 +103,7 @@ public class TaskFormDialog extends Dialog<Task> {
         title.setFont(Fonts.bold(18));
         title.getStyleClass().add(Styles.TITLE_3);
 
-        Label description = new Label("Selecciona el tipo de tarea que deseas crear: ");
+        Label description = new Label("Selecciona el tipo de tarea que deseas crear:");
         description.setFont(Fonts.regular(14));
         description.getStyleClass().add(Styles.TEXT_MUTED);
 
@@ -171,6 +177,82 @@ public class TaskFormDialog extends Dialog<Task> {
         txtDatabase.setPrefWidth(400);
         grid.add(lblDatabase, 0, row);
         grid.add(txtDatabase, 1, row);
+        row++;
+
+        Label lblDestination = new Label("Carpeta Destino:");
+        lblDestination.setFont(Fonts.medium(14));
+
+        HBox destinationBox = new HBox(10);
+        txtDestinationPath = new TextField();
+        txtDestinationPath.setPromptText("Selecciona una carpeta de destino");
+        txtDestinationPath.setPrefWidth(320);
+
+        btnBrowseDestination = new Button();
+        btnBrowseDestination.setGraphic(new FontIcon(Material2AL.FOLDER_OPEN));
+        btnBrowseDestination.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.ACCENT);
+        btnBrowseDestination.setOnAction(evt -> browseDirectory(txtDestinationPath));
+
+        destinationBox.getChildren().addAll(txtDestinationPath, btnBrowseDestination);
+
+        grid.add(lblDestination, 0, row);
+        grid.add(destinationBox, 1, row);
+        row++;
+
+        addFrequencyField(grid, row);
+        row++;
+
+        addTimePickerField(grid, row);
+
+        form.getChildren().addAll(separator, title, grid);
+        dynamicForContainer.getChildren().add(form);
+    }
+
+    private void buildFileOperationForm() {
+        VBox form = new VBox(20);
+
+        Separator separator = new Separator();
+
+        TypeTask type = cboTypeTask.getValue();
+        String formTitle = type.getId() == 2
+                ? "Configuración de Backup de Archivos"
+                : "Configuración para Mover Archivos";
+
+        Label title = new Label(formTitle);
+        title.setFont(Fonts.semiBold(16));
+        title.getStyleClass().add(Styles.TITLE_4);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(15);
+
+        int row = 0;
+
+        Label lblName = new Label("Nombre de la tarea:");
+        lblName.setFont(Fonts.medium(14));
+        txtName = new TextField();
+        txtName.setPromptText("Ej: Backup documentos importantes");
+        txtName.setPrefWidth(400);
+        grid.add(lblName, 0, row);
+        grid.add(txtName, 1, row);
+        row++;
+
+        Label lblSource = new Label("Carpeta origen:");
+        lblSource.setFont(Fonts.medium(14));
+
+        HBox sourceBox = new HBox(10);
+        txtSourcePath = new TextField();
+        txtSourcePath.setPromptText("Selecciona la carpeta de origen");
+        txtSourcePath.setPrefWidth(320);
+
+        btnBrowseSource = new Button();
+        btnBrowseSource.setGraphic(new FontIcon(Material2AL.FOLDER_OPEN));
+        btnBrowseSource.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.ACCENT);
+        btnBrowseSource.setOnAction(evt -> browseDirectory(txtSourcePath));
+
+        sourceBox.getChildren().addAll(txtSourcePath, btnBrowseSource);
+
+        grid.add(lblSource, 0, row);
+        grid.add(sourceBox, 1, row);
         row++;
 
         Label lblDestination = new Label("Carpeta Destino:");
@@ -355,5 +437,143 @@ public class TaskFormDialog extends Dialog<Task> {
         timeBox.setManaged(false);
     }
 
+    private void updateTimePickerVisibility() {
+        Frequency frequency = cboFrequency.getValue();
+        if (frequency == null) return;
 
+        boolean showTimePicker = frequency.getId() != 1;
+
+        dynamicForContainer.lookupAll("#lblTime").forEach(node -> {
+            node.setVisible(showTimePicker);
+            node.setManaged(showTimePicker);
+        });
+
+        dynamicForContainer.lookupAll("#timeBox").forEach(node -> {
+            node.setVisible(showTimePicker);
+            node.setManaged(showTimePicker);
+        });
+    }
+
+    private void browseDirectory(TextField targetField) {
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Seleccionar Carpeta");
+
+        String currentPath = targetField.getText();
+        if (currentPath != null && !currentPath.isEmpty()) {
+            File currentDir = new File(currentPath);
+
+            if (currentDir.exists()) {
+                chooser.setInitialDirectory(currentDir);
+            }
+        }
+
+        File selectedDir = chooser.showDialog(getDialogPane().getScene().getWindow());
+        if (selectedDir != null) {
+            targetField.setText(selectedDir.getAbsolutePath());
+        }
+    }
+
+    private boolean validateForm() {
+        Task tempTask = buildTaskFromForm();
+
+        if (tempTask == null) {
+            return false;
+        }
+
+        Map<String, String> errors = TaskValidator.validate(tempTask);
+
+        if (!errors.isEmpty()) {
+            Notification.showValidationErrors("Errores de validación", errors);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void setupResultConverter() {
+        setResultConverter(dialogButton -> {
+            if (dialogButton.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                if (validateForm()) {
+                    return buildTaskFromForm();
+                }
+            }
+
+            return null;
+        });
+    }
+
+    private Task buildTaskFromForm() {
+        Task task = isEditMode ? taskToEdit : new Task();
+
+        task.setName(txtName.getText().trim());
+        task.setType(cboTypeTask.getValue());
+        task.setFrequency(cboFrequency.getValue());
+
+        int typeId = cboTypeTask.getValue().getId();
+
+        if (typeId == 1) {
+            task.setSourcePath(txtDestinationPath.getText().trim());
+            task.setDatabase(txtDatabase.getText().trim());
+        } else if (typeId == 2 || typeId == 3) {
+            task.setSourcePath(txtSourcePath.getText().trim());
+            task.setDestinationPath(txtDestinationPath.getText().trim());
+        } else if (typeId == 4) {
+            task.setSourcePath(txtSourcePath.getText().trim());
+            task.setDestinationPath(null);
+        }
+
+        if (cboFrequency.getValue().getId() != 1 && spinnerHour != null && spinnerMinute != null) {
+            int hour = spinnerHour.getValue();
+            int minute = spinnerMinute.getValue();
+            task.setScheduleTime(LocalTime.of(hour, minute));
+        } else {
+            task.setScheduleTime(null);
+        }
+
+        task.setIsActive(true);
+
+        return task;
+    }
+
+    private void loadTaskData() {
+        if (taskToEdit == null) return;
+
+        cboTypeTask.setValue(taskToEdit.getType());
+        updateFormForType(taskToEdit.getType());
+
+        txtName.setText(taskToEdit.getName());
+
+        if (taskToEdit.getSourcePath() != null) {
+            txtSourcePath.setText(taskToEdit.getSourcePath());
+        }
+
+        if (taskToEdit.getDestinationPath() != null) {
+            txtDestinationPath.setText(taskToEdit.getDestinationPath());
+        }
+
+        cboFrequency.setValue(taskToEdit.getFrequency());
+
+        if (taskToEdit.getScheduleTime() != null) {
+            spinnerHour.getValueFactory().setValue(taskToEdit.getScheduleTime().getHour());
+            spinnerMinute.getValueFactory().setValue(taskToEdit.getScheduleTime().getMinute());
+        }
+    }
+
+    public void setTypeOptions(List<TypeTask> types) {
+        this.typeTaskList = types;
+        cboTypeTask.getItems().setAll(types);
+    }
+
+    public void setFrequencyOptions(List<Frequency> frequencies) {
+        this.frequencyList = frequencies;
+        if (cboFrequency != null) {
+            cboFrequency.getItems().setAll(frequencies);
+        }
+    }
+
+    private void loadFrequencyOptions() {
+        if (frequencyList != null && cboFrequency != null) {
+            cboFrequency.getItems().setAll(frequencyList);
+        }
+    }
 }
