@@ -45,7 +45,9 @@ public class MoveFilesExecutor implements TaskExecutorStrategy {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     if (fileExtension != null && !fileExtension.isEmpty()) {
-                        if (!file.toString().toLowerCase().endsWith(fileExtension.toLowerCase())) {
+                        String fileName = file.getFileName().toString().toLowerCase();
+                        if (!fileName.endsWith(fileExtension.toLowerCase())) {
+                            logger.fine("Omitiendo archivo (no coincide extensión): " + file.getFileName());
                             return FileVisitResult.CONTINUE;
                         }
                     }
@@ -77,7 +79,8 @@ public class MoveFilesExecutor implements TaskExecutorStrategy {
 
             result.setSuccess(true);
             result.setMessage(String.format("Movidos %d archivos", movedCount.get()));
-            result.setSize(formatFileSize(totalBytes.get()));
+            result.setSize(totalBytes.get());
+            result.setFileCount(Math.toIntExact(movedCount.get()));
             result.setStatusId(1);
 
             logger.info(String.format("Operación completada: %d archivos movidos", movedCount.get()));

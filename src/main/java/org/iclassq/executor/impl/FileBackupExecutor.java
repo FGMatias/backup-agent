@@ -26,6 +26,7 @@ public class FileBackupExecutor implements TaskExecutorStrategy {
 
             Path sourcePath = Paths.get(task.getSourcePath());
             Path destinationBasePath = Paths.get(task.getDestinationPath());
+            String fileExtension = task.getFileExtension();
 
             if (!Files.exists(sourcePath)) {
                 result.setMessage("Error: La ruta de origen no existe");
@@ -47,9 +48,23 @@ public class FileBackupExecutor implements TaskExecutorStrategy {
             AtomicLong totalBytes = new AtomicLong(0);
             AtomicLong fileCount = new AtomicLong(0);
 
+            if (fileExtension != null && !fileExtension.isEmpty()) {
+                logger.info("Filtrando archivos por extensión: " + fileExtension);
+            } else {
+                logger.info("Copiando todos los archivos (sin filtro de extensión)");
+            }
+
             Files.walkFileTree(sourcePath, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (fileExtension != null && !fileExtension.isEmpty()) {
+                        String fileName = file.getFileName().toString().toLowerCase();
+                        if (!fileName.endsWith(fileExtension.toLowerCase())) {
+                            logger.fine("Omitiendo archivo (no coincide extensión): " + file.getFileName());
+                            return FileVisitResult.CONTINUE;
+                        }
+                    }
+
                     Path relativePath = sourcePath.relativize(file);
                     Path targetPath = destinationPath.resolve(relativePath);
 
@@ -73,15 +88,24 @@ public class FileBackupExecutor implements TaskExecutorStrategy {
                 }
             });
 
-            result.setSuccess(true);
-            result.setMessage(String.format("Backup completado: %d archivos copiados", fileCount.get()));
-            result.setSize(formatFileSize(totalBytes.get()));
-            result.setStatusId(1);
+            if (fileCount.get() == 0) {
+                result.setSuccess(false);
+                result.setMessage("No se encontraron archivos con la extensión especificada: " + fileExtension);
+                result.setStatusId(2);
+                logger.warning("No se encontraron archivos para copiar");
+            } else {
+                result.setSuccess(true);
+                result.setMessage(String.format("Backup completado: %d archivos copiados", fileCount.get()));
+                result.setSize(totalBytes.get());
+                result.setFileCount((int) fileCount.get());
+                result.setStatusId(1);
 
-            logger.info(String.format("Backup completado: %d archivos, %s",
-                    fileCount.get(), formatFileSize(totalBytes.get())));
+                logger.info(String.format("Backup completado: %d archivos, %s",
+                        fileCount.get(), formatFileSize(totalBytes.get())));
+            }
         } catch (Exception e) {
             logger.severe("Error en backup de archivos: " + e.getMessage());
+            e.printStackTrace();
             result.setMessage("Error: " + e.getMessage());
             result.setStatusId(2);
         } finally {

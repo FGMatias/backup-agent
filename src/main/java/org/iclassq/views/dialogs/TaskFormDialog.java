@@ -34,6 +34,7 @@ public class TaskFormDialog extends Dialog<Task> {
     private Spinner<Integer> spinnerMinute;
     private TextField txtSourcePath;
     private TextField txtDestinationPath;
+    private TextField txtFileExtension;
     private Button btnBrowseSource;
     private Button btnBrowseDestination;
     private TextField txtDatabase;
@@ -54,10 +55,6 @@ public class TaskFormDialog extends Dialog<Task> {
         initializeDialog();
         buildContent();
         setupResultConverter();
-
-//        if (isEditMode) {
-//            loadTaskData();
-//        }
     }
 
     private void initializeDialog() {
@@ -87,14 +84,14 @@ public class TaskFormDialog extends Dialog<Task> {
         VBox container = new VBox(25);
         container.setPadding(new Insets(25));
         container.setPrefWidth(600);
-        container.setMinHeight(450);
+        container.setMinHeight(500);
 
         VBox typeSection = createTypeSection();
 
         dynamicFormContainer = new VBox(20);
         dynamicFormContainer.setVisible(false);
         dynamicFormContainer.setManaged(false);
-        dynamicFormContainer.setMinHeight(350);
+        dynamicFormContainer.setMinHeight(400);
 
         container.getChildren().addAll(typeSection, dynamicFormContainer);
 
@@ -286,6 +283,15 @@ public class TaskFormDialog extends Dialog<Task> {
 
         grid.add(lblDestination, 0, row);
         grid.add(destinationBox, 1, row);
+        row++;
+
+        Label lblFileExtension = new Label("Extensión:");
+        lblFileExtension.setFont(Fonts.medium(14));
+        txtFileExtension = new TextField();
+        txtFileExtension.setPromptText("Ej: .pdf, .doc, .xlsx");
+        txtFileExtension.setPrefWidth(320);
+        grid.add(lblFileExtension, 0, row);
+        grid.add(txtFileExtension, 1, row);
         row++;
 
         addFrequencyField(grid, row);
@@ -564,6 +570,7 @@ public class TaskFormDialog extends Dialog<Task> {
             if (txtDestinationPath != null && !txtDestinationPath.getText().trim().isEmpty()) {
                 task.setDestinationPath(txtDestinationPath.getText().trim());
             }
+            task.setFileExtension(txtFileExtension.getText().trim());
         } else if (typeId == 4) {
             if (txtSourcePath != null && !txtSourcePath.getText().trim().isEmpty()) {
                 task.setSourcePath(txtSourcePath.getText().trim());
@@ -604,6 +611,10 @@ public class TaskFormDialog extends Dialog<Task> {
 
         if (taskToEdit.getDatabaseName() != null && txtDatabase != null) {
             txtDatabase.setText(taskToEdit.getDatabaseName());
+        }
+
+        if (taskToEdit.getFileExtension() != null && txtFileExtension != null) {
+            txtFileExtension.setText(taskToEdit.getFileExtension());
         }
 
         if (taskToEdit.getFrequency() != null && cboFrequency != null) {

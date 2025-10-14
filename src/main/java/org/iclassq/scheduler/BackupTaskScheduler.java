@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 @Component
-public class TaskScheduler {
-    private static final Logger logger = Logger.getLogger(TaskScheduler.class.getName());
+public class BackupTaskScheduler {
+    private static final Logger logger = Logger.getLogger(BackupTaskScheduler.class.getName());
 
     @Autowired
     private TaskService taskService;

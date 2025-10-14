@@ -16,9 +16,6 @@ public class History {
     @JoinColumn(name = "task_id", referencedColumnName = "id")
     private Task taskId;
 
-    @Column(name = "task_name")
-    private String taskName;
-
     @Column(name = "message")
     private String message;
 
@@ -39,8 +36,11 @@ public class History {
     @JoinColumn(name = "status", referencedColumnName = "id")
     private ExecutionStatus status;
 
+    @Column(name = "file_count")
+    private Integer fileCount;
+
     @Column(name = "size")
-    private String size;
+    private Long size;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -59,14 +59,6 @@ public class History {
 
     public void setTaskId(Task taskId) {
         this.taskId = taskId;
-    }
-
-    public String getTaskName() {
-        return taskName;
-    }
-
-    public void setTaskName(String taskName) {
-        this.taskName = taskName;
     }
 
     public String getMessage() {
@@ -117,11 +109,19 @@ public class History {
         this.status = status;
     }
 
-    public String getSize() {
+    public Integer getFileCount() {
+        return fileCount;
+    }
+
+    public void setFileCount(Integer fileCount) {
+        this.fileCount = fileCount;
+    }
+
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(String size) {
+    public void setSize(Long size) {
         this.size = size;
     }
 
@@ -131,5 +131,19 @@ public class History {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFormattedSize() {
+        if (size == null || size == 0) {
+            return "-";
+        }
+        return formatFileSize(size);
+    }
+
+    private String formatFileSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.2f %sB", bytes / Math.pow(1024, exp), pre);
     }
 }

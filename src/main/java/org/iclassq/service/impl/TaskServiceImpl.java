@@ -1,10 +1,9 @@
-package org.iclassq.service;
+package org.iclassq.service.impl;
 
 import jakarta.validation.ValidationException;
 import org.iclassq.entity.Task;
-import org.iclassq.repository.FrequencyRepository;
 import org.iclassq.repository.TaskRepository;
-import org.iclassq.repository.TypeTaskRepository;
+import org.iclassq.service.TaskService;
 import org.iclassq.validation.TaskValidator;
 import org.iclassq.views.components.Message;
 import org.springframework.beans.factory.annotation.Autowired;

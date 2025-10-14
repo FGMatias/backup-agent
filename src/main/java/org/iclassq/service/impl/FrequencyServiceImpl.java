@@ -1,8 +1,9 @@
-package org.iclassq.service;
+package org.iclassq.service.impl;
 
 import jakarta.validation.ValidationException;
 import org.iclassq.entity.Frequency;
 import org.iclassq.repository.FrequencyRepository;
+import org.iclassq.service.FrequencyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -9,13 +9,16 @@ public class ExecutionResult {
     private LocalTime startTime;
     private LocalTime endTime;
     private String duration;
-    private String size;
+    private Integer fileCount;
+    private Long size;
     private int statusId;
 
     public ExecutionResult(boolean success, String message) {
         this.success = success;
         this.message = message;
         this.startTime = LocalTime.now();
+        this.fileCount = 0;
+        this.size = 0L;
     }
 
     public void finish() {
@@ -26,9 +29,10 @@ public class ExecutionResult {
     private void calculateDuration() {
         if (startTime != null && endTime != null) {
             long seconds = Duration.between(startTime, endTime).getSeconds();
-            long minutes = seconds / 60;
+            long hours = seconds / 3600;
+            long minutes = (seconds % 3600) / 60;
             long secs = seconds % 60;
-            this.duration = String.format("%d:%d", minutes, secs);
+            this.duration = String.format("%02d:%02d:%02d", hours, minutes, secs);
         }
     }
 
@@ -72,11 +76,19 @@ public class ExecutionResult {
         this.duration = duration;
     }
 
-    public String getSize() {
+    public Integer getFileCount() {
+        return fileCount;
+    }
+
+    public void setFileCount(Integer fileCount) {
+        this.fileCount = fileCount;
+    }
+
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(String size) {
+    public void setSize(Long size) {
         this.size = size;
     }
 

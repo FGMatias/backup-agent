@@ -19,13 +19,13 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class Message {
-    private static StackPane notificationContainer;
+    private static StackPane messageContainer;
     private static final double DEFAULT_DURATION = 3.0;
     private static final Logger logger = Logger.getLogger(Message.class.getName());
 
     public static void initialize(StackPane container) {
-        notificationContainer = container;
-        notificationContainer.setPickOnBounds(false);
+        messageContainer = container;
+        messageContainer.setPickOnBounds(false);
     }
 
     public static void showSuccess(String title, String content) {
@@ -140,7 +140,7 @@ public class Message {
             Ikon icon,
             MessageType messageType
     ) {
-        if (notificationContainer == null) {
+        if (messageContainer == null) {
             logger.severe("Container de notificacion no inicializado");
             return;
         }
@@ -166,7 +166,7 @@ public class Message {
         StackPane.setAlignment(wrapper, Pos.TOP_RIGHT);
         StackPane.setMargin(wrapper, new Insets(20, 20, 0, 0));
 
-        notificationContainer.getChildren().add(wrapper);
+        messageContainer.getChildren().add(wrapper);
 
         Animations.slideInDown(wrapper, Duration.millis(300)).playFromStart();
 
@@ -175,13 +175,13 @@ public class Message {
         message.setOnClose(evt -> {
             autoClose.stop();
             var slideOut = Animations.slideOutUp(wrapper, Duration.millis(250));
-            slideOut.setOnFinished(e -> notificationContainer.getChildren().remove(wrapper));
+            slideOut.setOnFinished(e -> messageContainer.getChildren().remove(wrapper));
             slideOut.playFromStart();
         });
 
         autoClose.setOnFinished(e -> {
             var slideOut = Animations.slideOutUp(wrapper, Duration.millis(250));
-            slideOut.setOnFinished(ev -> notificationContainer.getChildren().remove(wrapper));
+            slideOut.setOnFinished(ev -> messageContainer.getChildren().remove(wrapper));
             slideOut.playFromStart();
         });
 

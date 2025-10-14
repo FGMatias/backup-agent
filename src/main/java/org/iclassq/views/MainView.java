@@ -13,6 +13,7 @@ import org.iclassq.utils.Utilitie;
 import org.iclassq.utils.ViewNavigator;
 import org.iclassq.views.components.Header;
 import org.iclassq.views.components.Message;
+import org.iclassq.views.components.Notification;
 import org.iclassq.views.components.TabBar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -65,6 +66,7 @@ public class MainView {
         root.getChildren().addAll(contentPane, notificationLayer);
 
         Message.initialize(notificationLayer);
+        Notification.initialize(notificationLayer);
 
         return new Scene(root, Utilitie.APP_WIDTH, Utilitie.APP_HEIGHT);
     }

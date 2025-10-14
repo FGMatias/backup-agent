@@ -1,8 +1,9 @@
-package org.iclassq.service;
+package org.iclassq.service.impl;
 
 import jakarta.validation.ValidationException;
 import org.iclassq.entity.TypeTask;
 import org.iclassq.repository.TypeTaskRepository;
+import org.iclassq.service.TypeTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

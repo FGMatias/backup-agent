@@ -55,7 +55,8 @@ public class CleanFolderExecutor implements TaskExecutorStrategy {
 
             result.setSuccess(true);
             result.setMessage(String.format("Eliminados %d archivos", deletedCount.get()));
-            result.setSize(formatFileSize(freedBytes.get()));
+            result.setSize(freedBytes.get());
+            result.setFileCount(Math.toIntExact(deletedCount.get()));
             result.setStatusId(1);
 
             logger.info(String.format("Limpieza completada: %d archivos, %s liberados",

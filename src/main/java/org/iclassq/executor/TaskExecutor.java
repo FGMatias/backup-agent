@@ -52,13 +52,13 @@ public class TaskExecutor {
         try {
             History history = new History();
             history.setTaskId(task);
-            history.setTaskName(task.getName());
             history.setMessage(result.getMessage());
             history.setTypeTask(task.getType());
             history.setStartTime(result.getStartTime());
             history.setEndTime(result.getEndTime());
             history.setDuration(result.getDuration());
             history.setSize(result.getSize());
+            history.setFileCount(result.getFileCount());
             history.setCreatedAt(LocalDateTime.now());
 
             ExecutionStatus status = executionStatusRepository.findById(result.getStatusId())

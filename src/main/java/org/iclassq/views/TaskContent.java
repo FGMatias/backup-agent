@@ -6,15 +6,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import org.iclassq.controller.TaskController;
 import org.iclassq.entity.Task;
 import org.iclassq.utils.Fonts;
 import org.iclassq.views.components.Table;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.material2.Material2AL;
 import org.kordamp.ikonli.material2.Material2MZ;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.format.DateTimeFormatter;
@@ -29,7 +26,6 @@ public class TaskContent {
     private Table<Task> taskTable;
     private TextField searchField;
     private ComboBox<String> cboStatus;
-    private Pagination pagination;
     private Label totalTasksLabel;
     private Button btnAddTask;
     private Button btnRefresh;
@@ -285,10 +281,6 @@ public class TaskContent {
 
     public ComboBox<String> getCboStatus() {
         return cboStatus;
-    }
-
-    public Pagination getPagination() {
-        return pagination;
     }
 
     public Label getTotalTasksLabel() {

@@ -10,6 +10,7 @@ import org.iclassq.controller.DashboardController;
 import org.iclassq.utils.Fonts;
 import org.iclassq.utils.Utilitie;
 import org.iclassq.views.components.Card;
+import org.iclassq.views.components.Grid;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -44,7 +45,7 @@ public class DashboardContent {
 //        contentContainer.setMaxWidth(Utilitie.APP_WIDTH - 20);
         contentContainer.setAlignment(Pos.TOP_CENTER);
 
-        GridPane quickSummary = createQuickSummarySection();
+        Grid quickSummary = createQuickSummarySection();
         VBox executionCard = createExecutionCard();
         VBox statsSection = createStatsSection();
 
@@ -65,34 +66,12 @@ public class DashboardContent {
         return scrollPane;
     }
 
-    private GridPane createResponsiveGrid(int preferredColumns, Card... cards) {
-        GridPane grid = new GridPane();
-        grid.setHgap(20);
-        grid.setVgap(15);
-        grid.setAlignment(Pos.CENTER);
-        grid.setMaxWidth(Double.MAX_VALUE);
-
-        for (int i = 0; i < preferredColumns; i++) {
-            ColumnConstraints col = new ColumnConstraints();
-            col.setHgrow(Priority.ALWAYS);
-            col.setPercentWidth(100.0 / preferredColumns);
-            col.setMinWidth(200);
-            grid.getColumnConstraints().add(col);
-        }
-
-        for (int i = 0; i < cards.length; i++) {
-            grid.add(cards[i], i % preferredColumns, i / preferredColumns);
-        }
-
-        return grid;
-    }
-
-    private GridPane createQuickSummarySection() {
+    private Grid createQuickSummarySection() {
         scheduleTaskCard = new Card("Tareas Programadas", "5");
         runningTaskCard = new Card("Ejecutándose", "3");
         completedTodayCard = new Card("Completadas Hoy", "6");
 
-        return createResponsiveGrid(
+        return new Grid(
                 3,
                 scheduleTaskCard,
                 runningTaskCard,
@@ -162,7 +141,7 @@ public class DashboardContent {
         spaceCard = new Card("Espacio Liberado", "2.3 GB");
         errorCard = new Card("Errores", "0", true);
 
-        GridPane grid = createResponsiveGrid(
+        Grid grid = new Grid(
                 4,
                 backupCard,
                 fileCard,

@@ -1,19 +1,15 @@
 package org.iclassq.controller;
 
-import atlantafx.base.controls.Notification;
 import jakarta.annotation.PostConstruct;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import org.iclassq.entity.Task;
-import org.iclassq.scheduler.TaskScheduler;
+import org.iclassq.scheduler.BackupTaskScheduler;
 import org.iclassq.service.FrequencyService;
 import org.iclassq.service.TaskService;
 import org.iclassq.service.TypeTaskService;
 import org.iclassq.views.TaskContent;
 import org.iclassq.views.components.Message;
+import org.iclassq.views.components.Notification;
 import org.iclassq.views.dialogs.TaskFormDialog;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -27,7 +23,7 @@ public class TaskController {
     private final TaskService taskService;
     private final TypeTaskService typeTaskService;
     private final FrequencyService frequencyService;
-    private final TaskScheduler taskScheduler;
+    private final BackupTaskScheduler backupTaskScheduler;
 
     private Map<String, Integer> statusMap = new HashMap<>();
 
@@ -38,13 +34,13 @@ public class TaskController {
             TaskService taskService,
             TypeTaskService typeTaskService,
             FrequencyService frequencyService,
-            TaskScheduler taskScheduler
+            BackupTaskScheduler backupTaskScheduler
     ) {
         this.view = view;
         this.taskService = taskService;
         this.typeTaskService = typeTaskService;
         this.frequencyService = frequencyService;
-        this.taskScheduler = taskScheduler;
+        this.backupTaskScheduler = backupTaskScheduler;
     }
 
     @PostConstruct
@@ -154,102 +150,86 @@ public class TaskController {
     }
 
     public void handleDelete(Task task) {
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("Confirmar eliminación");
-        confirmation.setHeaderText("¿Eliminar esta tarea?");
-        confirmation.setContentText("Tarea: " + task.getName());
+        Notification.confirmDelete(
+                "la tarea '" + task.getName() + "'",
+                () -> {
+                    try {
+                        taskService.delete(task.getId());
+                        view.refreshTable(taskService.findAll());
+                        view.updateTaskCount(taskService.count());
 
-        Optional<ButtonType> result = confirmation.showAndWait();
-
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                taskService.delete(task.getId());
-                view.refreshTable(taskService.findAll());
-                view.updateTaskCount(taskService.count());
-
-                Message.showSuccess(
-                        "Tarea eliminada",
-                        "La tarea se eliminó correctamente"
-                );
-            } catch (Exception e) {
-                logger.severe("Error al eliminar: " + e.getMessage());
-                Message.showError(
-                        "Error",
-                        "No se pudo eliminar la tarea"
-                );
-            }
-        }
+                        Message.showSuccess(
+                                "Tarea eliminada",
+                                "La tarea se eliminó correctamente"
+                        );
+                    } catch (Exception e) {
+                        logger.severe("Error al eliminar: " + e.getMessage());
+                        Message.showError(
+                                "Error",
+                                "No se pudo eliminar la tarea"
+                        );
+                    }
+                }
+        );
     }
 
     public void handleExecute(Task task) {
-        logger.info("Ejecutar tarea manualmente: " + task.getId());
+        Notification.confirmAction(
+                "Deseas ejecutar la tarea '" + task.getName() + "'",
+                () -> {
+                    try {
+                        backupTaskScheduler.executeTaskManually(task);
 
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("Confirmar ejecución");
-        confirmation.setHeaderText("¿Ejecutar esta tarea ahora?");
-        confirmation.setContentText("Tarea: " + task.getName());
-
-        Optional<ButtonType> result = confirmation.showAndWait();
-
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                taskScheduler.executeTaskManually(task);
-
-                Message.showSuccess(
-                        "Tarea en ejecución",
-                        "La tarea '" + task.getName() + "' se está ejecutando"
-                );
-            } catch (Exception e) {
-                logger.severe("Error al ejecutar tarea: " + e.getMessage());
-                Message.showError("Error", "No se pudo ejecutar la tarea");
-            }
-        }
+                        Message.showSuccess(
+                                "Tarea en ejecución",
+                                "La tarea '" + task.getName() + "' se está ejecutando"
+                        );
+                    } catch (Exception e) {
+                        logger.severe("Error al ejecutar tarea: " + e.getMessage());
+                        Message.showError("Error", "No se pudo ejecutar la tarea");
+                    }
+                }
+        );
     }
 
     public void handleStatusChange(Task task, Boolean newIsActive) {
         Boolean originalState = task.getIsActive();
 
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle(newIsActive ? "Confirmar activación" : "Confirmar inactivación");
-        confirmation.setHeaderText(newIsActive ? "¿Desea activar esta tarea?" : "¿Desea inactivar esta tarea?");
-        confirmation.setContentText("Tarea: " + task.getName());
+        String message = newIsActive
+                ? "Deseas activar la tarea '" + task.getName() + "'"
+                : "Deseas desactivar la tarea '" + task.getName() + "'";
 
-        Optional<ButtonType> result = confirmation.showAndWait();
+        Notification.confirmWithCancel(
+                message,
+                () -> {
+                    try {
+                        task.setIsActive(newIsActive);
+                        taskService.update(task);
 
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                task.setIsActive(newIsActive);
-                taskService.update(task);
+                        Message.showSuccess(
+                                "Estado actualizado",
+                                String.format("'%s' ahora está %s",
+                                        task.getName(),
+                                        newIsActive ? "Activo" : "Inactivo"
+                                )
+                        );
 
-                logger.info(String.format(
-                        "Tarea '%s' -> %s",
-                        task.getName(),
-                        newIsActive ? "Activo" : "Inactiva"
-                ));
-
-                Message.showSuccess(
-                        "Estado actualizado",
-                        String.format("'%s' ahora está %s",
-                                task.getName(),
-                                newIsActive ? "Activo" : "Inactivo"
-                        )
-                );
-
-                view.refreshTable(taskService.findAll());
-            } catch (Exception e) {
-                logger.severe("Error al cambiar estado: " + e.getMessage());
-                Message.showError(
-                        "Error",
-                        "No se pudo actualizar el estado"
-                );
-                task.setIsActive(originalState);
-                view.refreshTable(taskService.findAll());
-            }
-        } else {
-            logger.info("Cambio de estado cancelado por el usuario");
-            task.setIsActive(originalState);
-            view.refreshTable(taskService.findAll());
-        }
+                        view.refreshTable(taskService.findAll());
+                    } catch (Exception e) {
+                        logger.severe("Error al cambiar estado: " + e.getMessage());
+                        Message.showError(
+                                "Error",
+                                "No se pudo actualizar el estado"
+                        );
+                        task.setIsActive(originalState);
+                        view.refreshTable(taskService.findAll());
+                    }
+                },
+                () -> {
+                    task.setIsActive(originalState);
+                    view.refreshTable(taskService.findAll());
+                }
+        );
     }
 
     public void applyFilters() {
