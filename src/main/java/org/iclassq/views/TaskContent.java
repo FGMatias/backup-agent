@@ -172,10 +172,10 @@ public class TaskContent {
         taskTable.setItemsPerPage(15)
                 .setMaxPageIndicators(7)
                 .setShowInfoLabel(true)
-                .addColumn("ID", "id", 50, "CENTER")
+                .addColumn("ID", "id", 50)
                 .addColumn("Nombre", "name", 200)
                 .addColumnWithDefault("Tipo", "type", 120, "Sin Tipo")
-                .addColumnWithExtractor("Programación", 120, "CENTER", task -> {
+                .addColumnWithExtractor("Programación", 120, task -> {
                     if (task.getScheduleTime() == null) {
                         return "-";
                     }
@@ -185,7 +185,7 @@ public class TaskContent {
                 .addColumnWithDefault("Base de Datos", "databaseName", 120, "N/A")
                 .addColumnWithDefault("Ruta Origen", "sourcePath", 200, "-")
                 .addColumnWithDefault("Ruta Destino", "destinationPath", 200, "N/A")
-                .addColumnWithDefault("Extensión", "fileExtension", 100, "CENTER", "-")
+                .addColumnWithDefault("Extensión", "fileExtension", 100, "-")
                 .addColumn("Frecuencia", "frequency", 100)
                 .addToggleSwitchColumn(
                         "Estado",
@@ -198,7 +198,7 @@ public class TaskContent {
                 )
                 .addActionsColumn("Acciones", 150, List.of(
                         new Table.ActionButton<>(
-                                "mdomz-play_arrow",
+                                "mdmz-play_arrow",
                                 "Ejecutar",
                                 Styles.SUCCESS,
                                 task -> {

@@ -5,7 +5,10 @@ import atlantafx.base.util.Animations;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.iclassq.enums.DialogType;
 import org.iclassq.utils.Fonts;
@@ -74,8 +77,22 @@ public class Notification {
                 new FontIcon(type.getIcon())
         );
         notification.getStyleClass().addAll(Styles.ELEVATED_2, type.getStyleClass());
-        notification.setPrefWidth(450);
+
+        VBox wrapper = new VBox(notification);
+        wrapper.setMaxWidth(400);
+        wrapper.setMaxHeight(150);
+        wrapper.setPrefWidth(400);
+        wrapper.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        wrapper.setAlignment(Pos.CENTER);
+
+        VBox.setVgrow(notification, Priority.NEVER);
         notification.setMaxWidth(450);
+        notification.setMaxHeight(100);
+
+        StackPane.setAlignment(notification, Pos.TOP_CENTER);
+        StackPane.setMargin(notification, new Insets(20, 20, 0, 20));
+
+        notificationContainer.getChildren().add(notification);
 
         Button confirmBtn;
         Button cancelBtn = new Button("Cancelar");
@@ -113,11 +130,6 @@ public class Notification {
         });
 
         notification.setPrimaryActions(confirmBtn, cancelBtn);
-
-        StackPane.setAlignment(notification, Pos.TOP_CENTER);
-        StackPane.setMargin(notification, new Insets(20, 20, 0, 20));
-
-        notificationContainer.getChildren().add(notification);
 
         Animations.slideInDown(notification, Duration.millis(300)).playFromStart();
     }

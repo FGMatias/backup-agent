@@ -46,7 +46,7 @@ public class Table<T> extends VBox {
     }
 
     private void setupTable() {
-        tableView.getStyleClass().add(Styles.STRIPED);
+        tableView.getStyleClass().addAll(Styles.BORDERED, Styles.STRIPED);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setItems(currentPageItems);
     }
@@ -350,6 +350,12 @@ public class Table<T> extends VBox {
         column.setPrefWidth(width);
         column.setStyle("-fx-alignment: CENTER;");
 
+        column.setCellValueFactory(cellData -> {
+            T item = cellData.getValue();
+            String description = descriptionExtractor.apply(item);
+            return new SimpleStringProperty(description);
+        });
+
         column.setCellFactory(col -> new TableCell<T, String>() {
             @Override
             protected void updateItem(String description, boolean empty) {
@@ -361,9 +367,24 @@ public class Table<T> extends VBox {
                 } else {
                     T item = (T) getTableRow().getItem();
                     if (item != null) {
+                        String desc = description;
+
+                        if (desc == null || desc.isEmpty()) {
+                            desc = descriptionExtractor.apply(item);
+                        }
+
                         Integer id = idExtractor.apply(item);
-                        Label badge = createBadgeById(description, id, styleProviderById);
-                        setGraphic(badge);
+
+                        if (desc != null && !desc.isEmpty()) {
+                            Label badge = createBadgeById(description, id, styleProviderById);
+                            setGraphic(badge);
+                            setText(null);
+                        } else {
+                            setGraphic(null);
+                            setText("-");
+                        }
+                    } else {
+                        setGraphic(null);
                         setText(null);
                     }
                 }
@@ -635,11 +656,15 @@ public class Table<T> extends VBox {
         String customStyle = styleProvider.getStyle(id);
         if (customStyle != null && !customStyle.isEmpty()) {
             badge.setStyle(badge.getStyle() + customStyle);
+        } else {
+            badge.setStyle(badge.getStyle() + " -fx-background-color: gray; -fx-text-fill: white;");
         }
 
         FontIcon icon = styleProvider.getIcon(id);
         if (icon != null) {
+            icon.setIconSize(14);
             badge.setGraphic(icon);
+            badge.setGraphicTextGap(6);
         }
 
         return badge;

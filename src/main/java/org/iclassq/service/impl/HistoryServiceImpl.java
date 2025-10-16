@@ -20,10 +20,10 @@ public class HistoryServiceImpl implements HistoryService {
     @Autowired
     private HistoryRepository historyRepository;
 
-    @Override
-    public Long countExecutions() {
-        return historyRepository.countByCreatedAt_Date(date);
-    }
+//    @Override
+//    public Long countExecutions() {
+//        return historyRepository.countByCreatedAt_Date(date);
+//    }
 
     @Override
     public Long countByStatus(Integer status) {

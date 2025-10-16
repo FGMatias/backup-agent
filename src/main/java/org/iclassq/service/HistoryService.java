@@ -5,7 +5,7 @@ import org.iclassq.entity.History;
 import java.util.List;
 
 public interface HistoryService {
-    Long countExecutions();
+//    Long countExecutions();
     Long countByStatus(Integer status);
     Long averageDuration();
     List<History> findAll();

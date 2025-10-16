@@ -22,7 +22,6 @@ import java.util.logging.Logger;
 
 @Component
 public class MainView {
-    private static final Logger logger = Logger.getLogger(MainView.class.getName());
     private StackPane root;
     private BorderPane contentPane;
     private TabBar tabBar;
@@ -84,7 +83,6 @@ public class MainView {
     }
 
     private void handleTabChange(TabType tabType) {
-        logger.info("Canbiando a tab: " + tabType.getDisplayName());
         loadContent(tabType);
     }
 

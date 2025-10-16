@@ -12,6 +12,7 @@ import javafx.scene.layout.*;
 import org.iclassq.entity.History;
 import org.iclassq.utils.Fonts;
 import org.iclassq.utils.Utilitie;
+import org.iclassq.views.components.Badge;
 import org.iclassq.views.components.Card;
 import org.iclassq.views.components.Grid;
 import org.iclassq.views.components.Table;
@@ -144,10 +145,10 @@ public class HistoryContent {
     }
 
     private Grid createSummaryCards() {
-        totalExecutionsCard = new Card("Total Ejecuciones", totalExecutionsLabel.getText());
-        successfulCard = new Card("Exitosas", totalSuccessfulLabel.getText());
-        failedCard = new Card("Fallidas", totalFailedLabel.getText(), true);
-        avgDurationCard = new Card("Duración Promedio", totalAvgDurationLabel.getText());
+        totalExecutionsCard = new Card("Total Ejecuciones", "0"); //totalExecutionsLabel.getText()
+        successfulCard = new Card("Exitosas", "0"); // totalSuccessfulLabel.getText()
+        failedCard = new Card("Fallidas", "0", true); // totalFailedLabel.getText()
+        avgDurationCard = new Card("Duración Promedio", "0"); // totalAvgDurationLabel.getText()
 
         return new Grid(
                 4,
@@ -238,56 +239,28 @@ public class HistoryContent {
         historyTable.setItemsPerPage(15)
                     .setMaxPageIndicators(7)
                     .setShowInfoLabel(true)
-                    .addColumn("ID", "id", 50, "CENTER")
-                    .addColumn("Nombre", "taskId", 150)
-                    .addColumnWithDefault("Tipo", "type", 120, "Sin Tipo")
-                    .addColumn("Inicio", "startTime", 130, "CENTER")
-                    .addColumn("Fin", "endTime", 130, "CENTER")
-                    .addColumn("Duración", "duration", 90, "CENTER")
+                    .addColumn("ID", "id", 50)
+                    .addColumn("Nombre", "taskId.name", 150)
+                    .addColumnWithDefault("Tipo", "typeTask.description", 120, "Sin Tipo")
+                    .addColumn("Inicio", "startTime", 60)
+                    .addColumn("Fin", "endTime", 60)
+                    .addColumn("Duración", "duration", 60)
                     .addBadgeColumnWhitId(
                             "Estado",
                             history -> history.getStatus() != null ? history.getStatus().getId() : 0,
                             history -> history.getStatus() != null ? history.getStatus().getDescription() : "Desconocido",
                             100,
-                            new Table.BadgeStyleProviderById() {
-                                @Override
-                                public String getStyle(Integer id) {
-                                    if (id == null) {
-                                        return "-fx-background-color: -color-bg-default; -fx-text-fill: -color-fg-muted;";
-                                    }
-
-                                    return switch (id) {
-                                        case 1 -> "-fx-background-color: -color-success-emphasis; -fx-text-fill: white;";
-                                        case 2 -> "-fx-background-color: -color-danger-emphasis; -fx-text-fill: white;";
-                                        case 3 -> "-fx-background-color: -color-accent-emphasis; -fx-text-fill: white;";
-                                        case 4 -> "-fx-background-color: -color-warning-emphasis; -fx-text-fill: white;";
-                                        default -> "-fx-background-color: -color-bg-default; -fx-text-fill: -color-fg-muted;";
-                                    };
-                                }
-
-                                @Override
-                                public FontIcon getIcon(Integer id) {
-                                    if (id == null) return null;
-
-                                    return switch (id) {
-                                        case 1 -> new FontIcon(Material2AL.CHECK_CIRCLE);
-                                        case 2 -> new FontIcon(Material2AL.ERROR);
-                                        case 3 -> new FontIcon(Material2MZ.PENDING);
-                                        case 4 -> new FontIcon(Material2AL.CANCEL);
-                                        default -> null;
-                                    };
-                                }
-                            }
+                            new Badge()
                     )
-                    .addColumn("Cantidad Archivos", "fileCount", 50, "CENTER")
-                    .addColumnWithExtractor("Tamaño", 90, "CENTER", History::getFormattedSize)
-                    .addColumnWithExtractor("Fecha", 100, "CENTER", history -> {
+                    .addColumn("Cantidad Archivos", "fileCount", 70)
+                    .addColumnWithExtractor("Tamaño", 60, History::getFormattedSize)
+                    .addColumnWithExtractor("Fecha", 60, history -> {
                         if (history.getCreatedAt() == null) return "-";
 
                         return history.getCreatedAt().toLocalDate()
                                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                     })
-                    .addActionsColumn("Acciones", 150, List.of(
+                    .addActionsColumn("Acciones", 90, List.of(
                             new Table.ActionButton<>(
                                     "mdmz-visibility",
                                     "Ver Detalles",
@@ -319,19 +292,19 @@ public class HistoryContent {
     }
 
     public void updateExecutionsCount(long count) {
-        totalExecutionsLabel.setText(count);
+//        totalExecutionsLabel.setText(count);
     }
 
     public void updateSuccessfulCount(long count) {
-        totalSuccessfulLabel.setText(count);
+//        totalSuccessfulLabel.setText(count);
     }
 
     public void updateFailedCount(long count) {
-        totalFailedLabel.setText(count);
+//        totalFailedLabel.setText(count);
     }
 
     public void updateAvgDurationCount(long count) {
-        totalAvgDurationLabel.setText(count);
+//        totalAvgDurationLabel.setText(count);
     }
 
     public VBox getMainContent() {

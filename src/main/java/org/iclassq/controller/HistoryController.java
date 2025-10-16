@@ -2,6 +2,7 @@ package org.iclassq.controller;
 
 import jakarta.annotation.PostConstruct;
 import org.iclassq.entity.ExecutionStatus;
+import org.iclassq.entity.History;
 import org.iclassq.entity.TypeTask;
 import org.iclassq.service.ExecutionStatusService;
 import org.iclassq.service.HistoryService;
@@ -9,12 +10,14 @@ import org.iclassq.service.TypeTaskService;
 import org.iclassq.views.HistoryContent;
 import org.iclassq.views.components.Message;
 import org.iclassq.views.components.Notification;
+import org.iclassq.views.dialogs.HistoryDialog;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 @Component
@@ -51,9 +54,9 @@ public class HistoryController {
     private void setupEventHandlers() {
         view.setOnRefresh(this::loadInitialData);
         view.setOnClearHistory(this::handleClearHistory);
-        view.setOnSearch(this::applyFilters);
+//        view.setOnSearch(this::applyFilters);
         view.setOnClearFilters(this::handleClearFilter);
-        view.setOnCancel(this::handleCancel);
+//        view.setOnCancel(this::handleCancel);
         view.setOnShowDetails(this::handleShowDetails);
     }
 
@@ -116,7 +119,7 @@ public class HistoryController {
     public void loadInitialData() {
         try {
             view.refreshTable(historyService.findAll());
-            view.updateExecutionsCount(historyService.countExecutions());
+//            view.updateExecutionsCount(historyService.countExecutions());
             view.updateSuccessfulCount(historyService.countByStatus(1));
             view.updateFailedCount(historyService.countByStatus(2));
             view.updateAvgDurationCount(historyService.averageDuration());
@@ -153,6 +156,16 @@ public class HistoryController {
                     }
                 }
         );
+    }
+
+    public void handleShowDetails(History history) {
+        try {
+            HistoryDialog dialog = new HistoryDialog(history);
+
+            dialog.showAndWait();
+        } catch (Exception e) {
+            logger.severe("Error al abrir el modal de detalles: " + e.getMessage());
+        }
     }
 
     public void handleClearFilter() {
