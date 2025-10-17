@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -25,6 +26,47 @@ public class TaskServiceImpl implements TaskService {
     public Long count() {
         logger.info("Obteniendo cantidad de tareas");
         return taskRepository.count();
+    }
+
+    @Override
+    public Long countActive() {
+        return taskRepository.countByIsActive(true);
+    }
+
+    @Override
+    public Task findNextScheduledTask() {
+        try {
+            List<Task> activeTasks = taskRepository.findByIsActive(true);
+
+            if (activeTasks.isEmpty()) return null;
+
+            LocalTime now = LocalTime.now();
+
+            Task nextTask = activeTasks.stream()
+                    .filter(task -> task.getScheduleTime() != null)
+                    .filter(task -> task.getFrequency() != null && task.getFrequency().getId() != 1)
+                    .min((t1, t2) -> {
+                        LocalTime time1 = t1.getScheduleTime();
+                        LocalTime time2 = t2.getScheduleTime();
+
+                        boolean t1PassedToday = time1.isBefore(now);
+                        boolean t2PassedToday = time2.isBefore(now);
+
+                        if (t1PassedToday && !t2PassedToday) {
+                            return 1;
+                        } else if (!t1PassedToday && t2PassedToday) {
+                            return -1;
+                        } else {
+                            return time1.compareTo(time2);
+                        }
+                    })
+                    .orElse(null);
+
+            return nextTask;
+        } catch (Exception e) {
+            logger.severe("Error al buscar la próxima tarea: " + e.getMessage());
+            return null;
+        }
     }
 
     @Override

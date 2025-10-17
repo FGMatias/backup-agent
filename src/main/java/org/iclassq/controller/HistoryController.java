@@ -14,11 +14,14 @@ import org.iclassq.views.dialogs.HistoryDialog;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Component
 public class HistoryController {
@@ -54,7 +57,7 @@ public class HistoryController {
     private void setupEventHandlers() {
         view.setOnRefresh(this::loadInitialData);
         view.setOnClearHistory(this::handleClearHistory);
-//        view.setOnSearch(this::applyFilters);
+        view.setOnSearch(this::applyFilters);
         view.setOnClearFilters(this::handleClearFilter);
 //        view.setOnCancel(this::handleCancel);
         view.setOnShowDetails(this::handleShowDetails);
@@ -77,10 +80,7 @@ public class HistoryController {
             }
 
             view.getStatusFilter().setValue("Todos");
-
-            logger.info("Estados cargados: " + list.size());
         } catch (Exception e) {
-            logger.severe("Error al cargar los estados: " + e.getMessage());
             Message.showError(
                     "Error",
                     "No se pudieron cargar los estados"
@@ -106,9 +106,7 @@ public class HistoryController {
 
             view.getTypeFilter().setValue("Todos");
 
-            logger.info("Tipos de tarea cargados: " + list.size());
         } catch (Exception e) {
-            logger.severe("Error al cargar los tipos de tarea: " + e.getMessage());
             Message.showError(
                     "Error",
                     "No se pudieron cargar los tipos de tarea"
@@ -119,19 +117,18 @@ public class HistoryController {
     public void loadInitialData() {
         try {
             view.refreshTable(historyService.findAll());
-//            view.updateExecutionsCount(historyService.countExecutions());
+            view.updateExecutionsCount(historyService.count());
             view.updateSuccessfulCount(historyService.countByStatus(1));
             view.updateFailedCount(historyService.countByStatus(2));
-            view.updateAvgDurationCount(historyService.averageDuration());
+            view.updateAvgDurationCount(historyService.getAverageDurationFormatted());
         } catch (Exception e) {
-            logger.severe("Error al cargar el historial: " + e.getMessage());
             try {
                 Message.showError(
                         "Error",
                         "No se pudo cargar el historial"
                 );
             } catch (Exception msgError) {
-                logger.warning("No se pudo mostrar el mensaje de error: " + msgError.getMessage());
+                msgError.printStackTrace();
             }
         }
     }
@@ -148,7 +145,6 @@ public class HistoryController {
                                 "El historial se eliminó correctamente"
                         );
                     } catch (Exception e) {
-                        logger.severe("Error al eliminar el historial: " + e.getMessage());
                         Message.showError(
                                 "Error",
                                 "No se pudo eliminar el historial"
@@ -164,7 +160,7 @@ public class HistoryController {
 
             dialog.showAndWait();
         } catch (Exception e) {
-            logger.severe("Error al abrir el modal de detalles: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -173,5 +169,137 @@ public class HistoryController {
         view.getEndDatePicker().setValue(LocalDate.now());
         view.getStatusFilter().setValue("Todos");
         view.getTypeFilter().setValue("Todos");
+        loadInitialData();
+    }
+
+    public void applyFilters() {
+        try {
+            LocalDate startDate = view.getStartDatePicker().getValue();
+            LocalDate endDate = view.getEndDatePicker().getValue();
+            String selectedStatus = view.getStatusFilter().getValue();
+            String selectedType = view.getTypeFilter().getValue();
+
+            if (startDate == null || endDate == null) {
+                Message.showWarning(
+                        "Fechas requeridas",
+                        "Debes seleccionar un rango de fechas"
+                );
+                return;
+            }
+
+            if (startDate.isAfter(endDate)) {
+                Message.showWarning(
+                        "Fechas inválidas",
+                        "La fecha de inicio no puede ser posterior a la fecha de fin"
+                );
+                return;
+            }
+
+            List<History> allHistory = historyService.findAll();
+            List<History> filteredHistory = allHistory;
+
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+            filteredHistory = filteredHistory.stream()
+                    .filter(h -> h.getCreatedAt() != null)
+                    .filter(h -> !h.getCreatedAt().isBefore(startDateTime) && !h.getCreatedAt().isAfter(endDateTime))
+                    .collect(Collectors.toList());
+
+            if (selectedStatus != null && !selectedStatus.equals("Todos")) {
+                Integer statusId = statusMap.get(selectedStatus);
+
+                if (statusId != null && statusId != 0) {
+                    filteredHistory = filteredHistory.stream()
+                            .filter(h -> h.getStatus() != null && h.getStatus().getId() == statusId)
+                            .collect(Collectors.toList());
+                }
+            }
+
+            if (selectedType != null && !selectedType.equals("Todos")) {
+                Integer typeId = typesTasksMap.get(selectedType);
+
+                if (typeId != null && typeId != 0) {
+                    filteredHistory = filteredHistory.stream()
+                            .filter(h -> h.getTypeTask() != null && h.getTypeTask().getId() == typeId)
+                            .collect(Collectors.toList());
+                }
+            }
+
+            view.refreshTable(filteredHistory);
+
+            updateCardsWithFilteredData(filteredHistory);
+
+            if (filteredHistory.isEmpty()) {
+                Message.showInformation(
+                        "Sin resultados",
+                        "No se encontraron registros que coincidan con los filtros"
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Message.showError(
+                    "Error",
+                    "No se pudieron aplicar los filtros"
+            );
+        }
+    }
+
+    private void updateCardsWithFilteredData(List<History> filteredHistory) {
+        try {
+            view.updateExecutionsCount(filteredHistory.size());
+
+            long successful = filteredHistory.stream()
+                    .filter(h -> h.getStatus() != null && h.getStatus().getId() == 1)
+                    .count();
+            view.updateSuccessfulCount(successful);
+
+            long failed = filteredHistory.stream()
+                    .filter(h -> h.getStatus() != null && h.getStatus().getId() == 2)
+                    .count();
+            view.updateFailedCount(failed);
+
+            String avgDuration = calculateAverageDuration(filteredHistory);
+            view.updateAvgDurationCount(avgDuration);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String calculateAverageDuration(List<History> histories) {
+        if (histories.isEmpty()) {
+            return "0 s";
+        }
+
+        long totalSeconds = 0;
+        int validCount = 0;
+
+        for (History h : histories) {
+            if (h.getStartTime() != null && h.getEndTime() != null) {
+                java.time.Duration duration = java.time.Duration.between(h.getStartTime(), h.getEndTime());
+                totalSeconds += duration.getSeconds();
+                validCount++;
+            }
+        }
+
+        if (validCount == 0) {
+            return "0 s";
+        }
+
+        long avgSeconds = totalSeconds / validCount;
+
+        if (avgSeconds < 60) {
+            return avgSeconds + " s";
+        } else if (avgSeconds < 3600) {
+            long minutes = avgSeconds / 60;
+            long secs = avgSeconds % 60;
+            return String.format("%d min %d s", minutes, secs);
+        } else {
+            long hours = avgSeconds / 3600;
+            long minutes = (avgSeconds % 3600) / 60;
+            return String.format("%d h %d min", hours, minutes);
+        }
     }
 }

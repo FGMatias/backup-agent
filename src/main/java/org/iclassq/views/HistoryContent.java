@@ -35,10 +35,6 @@ public class HistoryContent {
     private DatePicker endDatePicker;
     private ComboBox<String> statusFilter;
     private ComboBox<String> typeFilter;
-    private Label totalExecutionsLabel;
-    private Label totalSuccessfulLabel;
-    private Label totalFailedLabel;
-    private Label totalAvgDurationLabel;
     private Card totalExecutionsCard;
     private Card successfulCard;
     private Card failedCard;
@@ -292,19 +288,19 @@ public class HistoryContent {
     }
 
     public void updateExecutionsCount(long count) {
-//        totalExecutionsLabel.setText(count);
+        totalExecutionsCard.updateValue(String.valueOf(count));
     }
 
     public void updateSuccessfulCount(long count) {
-//        totalSuccessfulLabel.setText(count);
+        successfulCard.updateValue(String.valueOf(count));
     }
 
     public void updateFailedCount(long count) {
-//        totalFailedLabel.setText(count);
+        failedCard.updateValue(String.valueOf(count));
     }
 
-    public void updateAvgDurationCount(long count) {
-//        totalAvgDurationLabel.setText(count);
+    public void updateAvgDurationCount(String avgDuration) {
+        avgDurationCard.updateValue(avgDuration);
     }
 
     public VBox getMainContent() {
@@ -329,22 +325,6 @@ public class HistoryContent {
 
     public ComboBox<String> getTypeFilter() {
         return typeFilter;
-    }
-
-    public Label getTotalExecutionsLabel() {
-        return totalExecutionsLabel;
-    }
-
-    public Label getTotalSuccessfulLabel() {
-        return totalSuccessfulLabel;
-    }
-
-    public Label getTotalFailedLabel() {
-        return totalFailedLabel;
-    }
-
-    public Label getTotalAvgDurationLabel() {
-        return totalAvgDurationLabel;
     }
 
     public Button getBtnRefresh() {

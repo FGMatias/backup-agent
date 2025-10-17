@@ -13,9 +13,11 @@ import org.iclassq.views.dialogs.TaskFormDialog;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Component
 public class TaskController {
@@ -233,21 +235,46 @@ public class TaskController {
     }
 
     public void applyFilters() {
-        String selectedStatus = view.getCboStatus().getValue();
+        try {
+            String searchText = view.getSearchField().getText();
+            String selectedStatus = view.getCboStatus().getValue();
 
-        if (selectedStatus != null) {
-            Integer statusId = statusMap.get(selectedStatus);
+            List<Task> allTasks = taskService.findAll();
+            List<Task> filteredTasks = allTasks;
 
-            if (statusId == 0) {
-                view.refreshTable(taskService.findAll());
-                view.updateTaskCount(taskService.count());
-                logger.info("Mostrando todas las tareas");
-            } else {
-                boolean isActive = statusId == 1;
-                view.refreshTable(taskService.findByIsActive(isActive));
-                view.updateTaskCount((long) taskService.findByIsActive(isActive).size());
-                logger.info("Filtrar tareas por estado: " + statusId + " - " + selectedStatus);
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                String search = searchText.trim().toLowerCase();
+
+                filteredTasks = filteredTasks.stream()
+                        .filter(task ->
+                                task.getName().toLowerCase().contains(search) ||
+                                (task.getType() != null && task.getType().getDescription().toLowerCase().contains(search)) ||
+                                (task.getDatabaseName() != null && task.getDatabaseName().toLowerCase().contains(search))
+                        )
+                        .collect(Collectors.toList());
             }
+
+            if (selectedStatus != null && !selectedStatus.equals("Todos")) {
+                Integer statusId = statusMap.get(selectedStatus);
+
+                if (statusId != null && statusId != 0) {
+                    boolean isActive = statusId == 1;
+
+                    filteredTasks = filteredTasks.stream()
+                            .filter(task -> task.getIsActive() != null && task.getIsActive() == isActive)
+                            .collect(Collectors.toList());
+                }
+            }
+
+            view.refreshTable(filteredTasks);
+            view.updateTaskCount((long) filteredTasks.size());
+        } catch (Exception e) {
+            logger.severe("Error al aplicar los filtros: " + e.getMessage());
+            e.printStackTrace();
+            Message.showError(
+                    "Error",
+                    "No se pudieron aplicar los filtros"
+            );
         }
     }
 
@@ -255,6 +282,9 @@ public class TaskController {
         try {
             view.refreshTable(taskService.findAll());
             view.updateTaskCount(taskService.count());
+
+            view.getSearchField().clear();
+            view.getCboStatus().setValue("Todos");
         } catch (Exception e) {
             logger.severe("Error al cargar las tareas: " + e.getMessage());
             try {

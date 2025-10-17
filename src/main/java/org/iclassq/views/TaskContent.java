@@ -3,6 +3,7 @@ package org.iclassq.views;
 import atlantafx.base.theme.Styles;
 import jakarta.annotation.PostConstruct;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -153,7 +154,7 @@ public class TaskContent {
 
         toolbar.getChildren().addAll(
             searchBox,
-            new Separator(javafx.geometry.Orientation.VERTICAL),
+            new Separator(Orientation.VERTICAL),
             filterLabel,
             cboStatus,
             spacer,
@@ -212,15 +213,6 @@ public class TaskContent {
                                 task -> {
                                     if (onEdit != null) onEdit.accept(task);
                                 }
-                        ),
-                        new Table.ActionButton<>(
-                                "mdal-delete",
-                                "Eliminar",
-                                Styles.DANGER,
-                                task -> {
-                                    if (onDelete != null) onDelete.accept(task);
-                                },
-                                task -> task.getIsActive() == null || !task.getIsActive()
                         )
                 ))
                 .setPlaceHolder("No hay tareas programadas", "mdoal-inbox");

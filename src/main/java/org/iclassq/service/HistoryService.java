@@ -5,9 +5,13 @@ import org.iclassq.entity.History;
 import java.util.List;
 
 public interface HistoryService {
-//    Long countExecutions();
+    Long count();
     Long countByStatus(Integer status);
-    Long averageDuration();
+    Long countCompletedToday();
+    Long countByTypeToday(Integer typeId);
+    Long countFilesByTypeToday(Integer typeId);
+    String getTotalSizeToday();
+    String getAverageDurationFormatted();
     List<History> findAll();
     History findById(Integer id);
     void delete();

@@ -9,4 +9,5 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
     boolean existsByNameAndSourcePath(String name, String sourcePath);
     List<Task> findByIsActive(Boolean isActive);
     List<Task> findByNameContainingIgnoreCase(String name);
+    Long countByIsActive(Boolean isActive);
 }

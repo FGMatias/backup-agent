@@ -130,7 +130,7 @@ public class HistoryDialog extends Dialog<Void> {
         txtTaskName.setText(history.getTaskId().getName());
         txtTaskName.setEditable(false);
         txtTaskName.setFont(Fonts.regular(14));
-        txtTaskName.setPrefWidth(400);
+        txtTaskName.setPrefWidth(470);
 
         grid.add(lblTaskName, 0, row);
         grid.add(txtTaskName, 1, row);

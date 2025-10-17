@@ -7,11 +7,14 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.iclassq.controller.DashboardController;
+import org.iclassq.entity.Task;
 import org.iclassq.utils.Fonts;
 import org.iclassq.utils.Utilitie;
 import org.iclassq.views.components.Card;
 import org.iclassq.views.components.Grid;
 import org.springframework.stereotype.Component;
+
+import java.util.function.Consumer;
 
 @Component
 public class DashboardContent {
@@ -32,7 +35,6 @@ public class DashboardContent {
     @PostConstruct
     public void initialize() {
         buildContent();
-        new DashboardController(this);
     }
 
     private void buildContent() {
@@ -67,9 +69,9 @@ public class DashboardContent {
     }
 
     private Grid createQuickSummarySection() {
-        scheduleTaskCard = new Card("Tareas Programadas", "5");
-        runningTaskCard = new Card("Ejecutándose", "3");
-        completedTodayCard = new Card("Completadas Hoy", "6");
+        scheduleTaskCard = new Card("Tareas Programadas", "0");
+        runningTaskCard = new Card("Ejecutándose", "0");
+        completedTodayCard = new Card("Completadas Hoy", "0");
 
         return new Grid(
                 3,
@@ -83,9 +85,9 @@ public class DashboardContent {
         VBox card = new VBox(15);
         card.setPadding(new Insets(25));
         card.setStyle(
-            "-fx-background-color: -color-accent-8; " +
-            "-fx-background-radius: 10; " +
-            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);"
+                "-fx-background-color: -color-accent-8; " +
+                "-fx-background-radius: 10; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);"
         );
 
         Label subTitle = new Label("Próxima Ejecución");
@@ -96,15 +98,22 @@ public class DashboardContent {
         executionInfo.setAlignment(Pos.CENTER);
         executionInfo.setPadding(new Insets(20));
         executionInfo.setStyle(
-            "-fx-background-color: -color-accent-7; " +
-            "-fx-background-radius: 8;"
+                "-fx-background-color: -color-accent-7; " +
+                "-fx-background-radius: 8;"
         );
 
-        executionTime = new Label("HOY A LAS 23:00");
+        executionTime = new Label("CARGANDO...");
         executionTime.setFont(Fonts.bold(32));
+        executionTime.setWrapText(true);
+        executionTime.setMaxWidth(450);
+        executionTime.setAlignment(Pos.CENTER);
 
-        executionTask = new Label("Backup de Base de Datos");
+        executionTask = new Label("Obteniendo próxima tarea...");
         executionTask.setFont(Fonts.regular(16));
+        executionTask.setWrapText(true);
+        executionTask.setMaxWidth(450);
+        executionTask.setAlignment(Pos.CENTER);
+        executionTask.getStyleClass().add(Styles.TEXT_MUTED);
 
         executionInfo.getChildren().addAll(executionTime, executionTask);
 
@@ -115,11 +124,12 @@ public class DashboardContent {
         btnExecuteNow.setPadding(new Insets(10, 20, 10, 20));
         btnExecuteNow.setMnemonicParsing(true);
         btnExecuteNow.setStyle(
-            "-fx-background-color: -color-light; " +
-            "-fx-text-fill: -color-accent-5; " +
-            "-fx-font-size: 20px; " +
-            "-fx-font-weight: bold;"
+                "-fx-background-color: -color-light; " +
+                "-fx-text-fill: -color-accent-5; " +
+                "-fx-font-size: 20px; " +
+                "-fx-font-weight: bold;"
         );
+        btnExecuteNow.setDisable(true);
 
         buttons.getChildren().addAll(btnExecuteNow);
 
@@ -136,9 +146,9 @@ public class DashboardContent {
         title.setFont(Fonts.bold(28));
         title.getStyleClass().add(Styles.TITLE_3);
 
-        backupCard = new Card("Backups", "2");
-        fileCard = new Card("Archivos Movidos", "47");
-        spaceCard = new Card("Espacio Liberado", "2.3 GB");
+        backupCard = new Card("Backups", "0");
+        fileCard = new Card("Archivos Movidos", "0");
+        spaceCard = new Card("Espacio Liberado", "0");
         errorCard = new Card("Errores", "0", true);
 
         Grid grid = new Grid(
@@ -151,6 +161,44 @@ public class DashboardContent {
 
         section.getChildren().addAll(title, grid);
         return section;
+    }
+
+    public void updateScheduledTasksCount(long count) {
+        scheduleTaskCard.updateValue(String.valueOf(count));
+    }
+
+    public void updateRunningTasksCount(long count) {
+        runningTaskCard.updateValue(String.valueOf(count));
+    }
+
+    public void updateCompletedTodayCount(long count) {
+        completedTodayCard.updateValue(String.valueOf(count));
+    }
+
+    public void updateNextExecution(String time, String taskName) {
+        executionTime.setText(time);
+        executionTask.setText(taskName);
+    }
+
+    public void clearNextExecution() {
+        executionTime.setText("SIN TAREAS PROGRAMADAS");
+        executionTask.setText("No hay tareas activas en este momento");
+    }
+
+    public void updateBackupsCount(long count) {
+        backupCard.updateValue(String.valueOf(count));
+    }
+
+    public void updateFilesMovedCount(long count) {
+        fileCard.updateValue(String.valueOf(count));
+    }
+
+    public void updateSpaceFreed(String space) {
+        spaceCard.updateValue(space);
+    }
+
+    public void updateErrorsCount(long count) {
+        errorCard.updateValue(String.valueOf(count));
     }
 
     public BorderPane getRoot() {
@@ -192,4 +240,5 @@ public class DashboardContent {
     public void setBtnExecuteNow(Button btnExecuteNow) {
         this.btnExecuteNow = btnExecuteNow;
     }
+
 }
