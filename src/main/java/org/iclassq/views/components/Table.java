@@ -14,11 +14,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import org.iclassq.utils.Fonts;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.kordamp.ikonli.material2.Material2AL;
+import org.kordamp.ikonli.material2.Material2MZ;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,16 +35,24 @@ public class Table<T> extends VBox {
     private final TableView<T> tableView;
     private final ObservableList<T> allItems;
     private final ObservableList<T> currentPageItems;
-    private Pagination pagination;
+    private HBox paginationBar;
+    private Button btnFirst;
+    private Button btnPrevious;
+    private Button btnNext;
+    private Button btnLast;
+    private List<Button> pageButtons;
     private int itemsPerPage = 20;
     private boolean paginationEnabled = true;
     private Label infoLabel;
-    private  boolean showInfoLabel = true;
+    private boolean showInfoLabel = true;
+    private int currentPage = 0;
+    private int maxPageButtons = 7;
 
     public Table() {
         this.tableView = new TableView<>();
         this.allItems = FXCollections.observableArrayList();
         this.currentPageItems = FXCollections.observableArrayList();
+        this.pageButtons = new ArrayList<>();
 
         setupTable();
         build();
@@ -50,63 +62,72 @@ public class Table<T> extends VBox {
         tableView.getStyleClass().addAll(Styles.BORDERED, Styles.STRIPED);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableView.setItems(currentPageItems);
+
+        tableView.setFixedCellSize(40);
+        tableView.setOnScroll(event -> event.consume());
     }
 
     private void build() {
         this.setAlignment(Pos.CENTER);
         this.setSpacing(10);
 
+        tableView.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) {
+                Platform.runLater(() -> {
+                    ScrollBar vBar = (ScrollBar) tableView.lookup(".scroll-bar:vertical");
+                    if (vBar != null) {
+                        vBar.setVisible(false);
+                        vBar.setManaged(false);
+                    }
+                });
+            }
+        });
+
+        VBox.setVgrow(tableView, Priority.NEVER);
         this.getChildren().add(tableView);
 
-        createPagination();
+        createPaginationBar();
         createInfoLabel();
     }
 
-    private void createPagination() {
-        pagination = new Pagination();
-        pagination.setPageCount(1);
-        pagination.setCurrentPageIndex(0);
-        pagination.setMaxPageIndicatorCount(7);
-        pagination.setPageFactory(this::createPage);
-        pagination.setVisible(paginationEnabled);
-        pagination.setManaged(paginationEnabled);
+    private void createPaginationBar() {
+        paginationBar = new HBox(5);
+        paginationBar.setAlignment(Pos.CENTER);
+        paginationBar.setPadding(new Insets(10, 0, 5, 0));
+        paginationBar.setVisible(paginationEnabled);
+        paginationBar.setManaged(paginationEnabled);
 
-        pagination.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-            if (newSkin != null) customizePaginationButtons();
-        });
+        btnFirst = new Button();
+        btnFirst.setGraphic(new FontIcon(Material2AL.FIRST_PAGE));
+        btnFirst.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
+        btnFirst.setTooltip(new Tooltip("Primera página"));
+        btnFirst.setOnAction(e -> goToPage(0));
 
-        this.getChildren().add(pagination);
-    }
+        btnPrevious = new Button();
+        btnPrevious.setGraphic(new FontIcon(Material2AL.CHEVRON_LEFT));
+        btnPrevious.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
+        btnPrevious.setTooltip(new Tooltip("Página anterior"));
+        btnPrevious.setOnAction(e -> goToPage(currentPage - 1));
 
-    private void customizePaginationButtons() {
-        pagination.lookupAll(".number-button").forEach(node -> {
-            if (node instanceof Button) {
-                Button btn = (Button) node;
-                btn.setCursor(javafx.scene.Cursor.HAND);
+        btnNext = new Button();
+        btnNext.setGraphic(new FontIcon(Material2AL.CHEVRON_RIGHT));
+        btnNext.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
+        btnNext.setTooltip(new Tooltip("Página siguiente"));
+        btnNext.setOnAction(e -> goToPage(currentPage + 1));
 
-                btn.setOnMouseEntered(e -> {
-                    if (!btn.getStyleClass().contains("selected")) {
-                        btn.setStyle(
-                                "-fx-background-color: -color-accent-subtle; " +
-                                "-fx-text-fill: -color-accent-emphasis;"
-                        );
-                    }
-                });
+        btnLast = new Button();
+        btnLast.setGraphic(new FontIcon(Material2AL.LAST_PAGE));
+        btnLast.getStyleClass().addAll(Styles.BUTTON_ICON, Styles.FLAT);
+        btnLast.setTooltip(new Tooltip("Última página"));
+        btnLast.setOnAction(e -> goToPage(getTotalPages() - 1));
 
-                btn.setOnMouseExited(e -> {
-                    if (!btn.getStyleClass().contains("selected")) {
-                        btn.setStyle("");
-                    }
-                });
-            }
-        });
+        paginationBar.getChildren().addAll(btnFirst, btnPrevious);
 
-        pagination.lookupAll(".left-arrow-button, .right-arrow-button").forEach(node -> {
-            if (node instanceof Button) {
-                Button btn = (Button) node;
-                btn.setCursor(javafx.scene.Cursor.HAND);
-            }
-        });
+        paginationBar.getChildren().addAll(btnNext, btnLast);
+
+        this.getChildren().add(paginationBar);
+
+        updatePaginationButtons();
     }
 
     private void createInfoLabel() {
@@ -119,14 +140,28 @@ public class Table<T> extends VBox {
         HBox infoBox = new HBox();
         infoBox.setAlignment(Pos.CENTER);
         infoBox.setPadding(new Insets(5, 0, 0, 0));
+        infoBox.getChildren().add(infoLabel);
 
         this.getChildren().add(infoBox);
 
         updateInfoLabel();
     }
 
-    private TableView<T> createPage(int pageIndex) {
-        int fromIndex = pageIndex * itemsPerPage;
+    private void goToPage(int pageIndex) {
+        int totalPages = getTotalPages();
+
+        if (pageIndex < 0 || pageIndex >= totalPages) {
+            return;
+        }
+
+        currentPage = pageIndex;
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
+    }
+
+    private void updatePageData() {
+        int fromIndex = currentPage * itemsPerPage;
         int toIndex = Math.min(fromIndex + itemsPerPage, allItems.size());
 
         currentPageItems.clear();
@@ -135,10 +170,69 @@ public class Table<T> extends VBox {
             currentPageItems.addAll(allItems.subList(fromIndex, toIndex));
         }
 
-        updateInfoLabel();
-        Platform.runLater(this::customizePaginationButtons);
+        double headerHeight = 30;
+        double rowHeight = 40;
+        double visibleRows = Math.min(currentPageItems.size(), itemsPerPage);
+        double calculatedHeight = headerHeight + (visibleRows * rowHeight) + 2;
 
-        return null;
+        tableView.setPrefHeight(calculatedHeight);
+        tableView.setMinHeight(calculatedHeight);
+        tableView.setMaxHeight(calculatedHeight);
+    }
+
+    private void updatePaginationButtons() {
+        int totalPages = getTotalPages();
+
+        btnFirst.setDisable(currentPage == 0);
+        btnPrevious.setDisable(currentPage == 0);
+        btnNext.setDisable(currentPage >= totalPages - 1 || totalPages == 0);
+        btnLast.setDisable(currentPage >= totalPages - 1 || totalPages == 0);
+
+        paginationBar.getChildren().removeAll(pageButtons);
+        pageButtons.clear();
+
+        if (totalPages == 0) {
+            return;
+        }
+
+        int startPage = Math.max(0, currentPage - maxPageButtons / 2);
+        int endPage = Math.min(totalPages - 1, startPage + maxPageButtons - 1);
+
+        if (endPage - startPage < maxPageButtons - 1) {
+            startPage = Math.max(0, endPage - maxPageButtons + 1);
+        }
+
+        for (int i = startPage; i <= endPage; i++) {
+            final int pageIndex = i;
+            Button pageButton = new Button(String.valueOf(i + 1));
+            pageButton.setMinWidth(35);
+            pageButton.setPrefWidth(35);
+            pageButton.getStyleClass().addAll(Styles.BUTTON_OUTLINED, Styles.SMALL);
+
+            if (i == currentPage) {
+                pageButton.getStyleClass().add(Styles.ACCENT);
+            }
+
+            pageButton.setOnAction(e -> goToPage(pageIndex));
+
+            if (i != currentPage) {
+                pageButton.setOnMouseEntered(e -> {
+                    if (!pageButton.getStyleClass().contains(Styles.ACCENT)) {
+                        pageButton.setStyle("-fx-background-color: -color-accent-subtle;");
+                    }
+                });
+                pageButton.setOnMouseExited(e -> {
+                    if (!pageButton.getStyleClass().contains(Styles.ACCENT)) {
+                        pageButton.setStyle("");
+                    }
+                });
+            }
+
+            pageButtons.add(pageButton);
+        }
+
+        int insertIndex = paginationBar.getChildren().indexOf(btnPrevious) + 1;
+        paginationBar.getChildren().addAll(insertIndex, pageButtons);
     }
 
     private void updateInfoLabel() {
@@ -148,30 +242,38 @@ public class Table<T> extends VBox {
         }
 
         if (paginationEnabled) {
-            int currentPage = pagination.getCurrentPageIndex() + 1;
-            int totalPages = pagination.getPageCount();
+            int totalPages = getTotalPages();
             int showing = currentPageItems.size();
             int total = allItems.size();
 
             infoLabel.setText(String.format(
-                "Mostrando %d de %d registros (Página %d de %d)",
-                showing, total, currentPage, totalPages
+                    "Mostrando %d de %d registros (Página %d de %d)",
+                    showing, total, currentPage + 1, totalPages
             ));
         } else {
             infoLabel.setText(String.format("Total: %d registros", allItems.size()));
         }
     }
 
+    private int getTotalPages() {
+        if (allItems.isEmpty()) return 0;
+        return (int) Math.ceil((double) allItems.size() / itemsPerPage);
+    }
+
     public Table<T> setPaginationEnabled(boolean enabled) {
         this.paginationEnabled = enabled;
-        pagination.setVisible(enabled);
-        pagination.setManaged(enabled);
+        paginationBar.setVisible(enabled);
+        paginationBar.setManaged(enabled);
 
         if (!enabled) {
             currentPageItems.clear();
             currentPageItems.addAll(allItems);
+            tableView.setPrefHeight(Region.USE_COMPUTED_SIZE);
+            tableView.setMaxHeight(Double.MAX_VALUE);
         } else {
-            updatePagination();
+            currentPage = 0;
+            updatePageData();
+            updatePaginationButtons();
         }
 
         updateInfoLabel();
@@ -180,7 +282,10 @@ public class Table<T> extends VBox {
 
     public Table<T> setItemsPerPage(int items) {
         this.itemsPerPage = items;
-        updatePagination();
+        currentPage = 0;
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
         return this;
     }
 
@@ -193,18 +298,9 @@ public class Table<T> extends VBox {
     }
 
     public Table<T> setMaxPageIndicators(int max) {
-        pagination.setMaxPageIndicatorCount(max);
+        this.maxPageButtons = max;
+        updatePaginationButtons();
         return this;
-    }
-
-    private void updatePagination() {
-        if (!paginationEnabled) return;
-
-        int pageCount = (int) Math.ceil((double) allItems.size() / itemsPerPage);
-        pagination.setPageCount(Math.max(1, pageCount));
-
-        pagination.setCurrentPageIndex(0);
-        createPage(0);
     }
 
     public Table<T> addColumn(
@@ -250,8 +346,8 @@ public class Table<T> extends VBox {
             Function<T, String> valueExtractor
     ) {
         TableColumn<T, String> column = new TableColumn<>(header);
-        column.setCellValueFactory(cellData ->
-            new SimpleStringProperty(valueExtractor.apply(cellData.getValue()))
+        column.setCellValueFactory(
+                cellData -> new SimpleStringProperty(valueExtractor.apply(cellData.getValue()))
         );
 
         column.setPrefWidth(width);
@@ -506,6 +602,92 @@ public class Table<T> extends VBox {
         return this;
     }
 
+    public Table<T> addToggleSwitchColumn(
+            String header,
+            Function<T, Boolean> statusExtractor,
+            Function<T, String> descriptionExtractor,
+            double width,
+            BiConsumer<T, Boolean> onToggle
+    ) {
+        TableColumn<T, Void> column = new TableColumn<>(header);
+        column.setPrefWidth(width);
+        column.setStyle("-fx-alignment: CENTER;");
+
+        column.setCellFactory(col -> new TableCell<T, Void>() {
+            private final ToggleSwitch toggleSwitch = new ToggleSwitch();
+            private final Label label = new Label();
+            private final HBox container = new HBox(8);
+            private boolean isUpdating = false;
+
+            {
+                container.setAlignment(Pos.CENTER);
+                container.getChildren().addAll(toggleSwitch, label);
+
+                toggleSwitch.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                    if (isUpdating) return;
+
+                    T item = getTableView().getItems().get(getIndex());
+
+                    if (onToggle != null) {
+                        isUpdating = true;
+
+                        try {
+                            onToggle.accept(item, newValue);
+
+                            Boolean currentItemState = statusExtractor.apply(item);
+
+                            if (currentItemState != null && currentItemState != newValue) {
+                                toggleSwitch.setSelected(currentItemState);
+                                updateLabelStyle(currentItemState);
+                            }
+                        } finally {
+                            isUpdating = false;
+                        }
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    T rowItem = getTableView().getItems().get(getIndex());
+                    Boolean isActive = statusExtractor.apply(rowItem);
+                    String description = descriptionExtractor.apply(rowItem);
+                    boolean switchState = (isActive != null && isActive);
+
+                    isUpdating = true;
+                    toggleSwitch.setSelected(switchState);
+
+                    label.setText(description != null ? description : "Sin estado");
+                    label.setStyle(
+                            switchState
+                                    ? "-fx-text-fill: -color-success-emphasis; -fx-font-weight: bold;"
+                                    : "-fx-text-fill: -color-danger-emphasis;"
+                    );
+
+                    isUpdating = false;
+
+                    setGraphic(container);
+                }
+            }
+
+            private void updateLabelStyle(boolean isActive) {
+                label.setStyle(
+                        isActive
+                                ? "-fx-text-fill: -color-success-emphasis; -fx-font-weight: bold;"
+                                : "-fx-text-fill: -color-danger-emphasis;"
+                );
+            }
+        });
+
+        tableView.getColumns().add(column);
+        return this;
+    }
+
     public Table<T> setPlaceHolder(String text, String icon) {
         Label placeholder = new Label(text);
 
@@ -533,24 +715,39 @@ public class Table<T> extends VBox {
         if (data != null) {
             allItems.addAll(data);
         }
-        updatePagination();
+
+        currentPage = 0;
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
     }
 
     public void addItem(T item) {
         allItems.add(item);
-        updatePagination();
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
     }
 
     public void addItems(List<T> newItems) {
         if (newItems != null) {
             allItems.addAll(newItems);
-            updatePagination();
+            updatePageData();
+            updatePaginationButtons();
+            updateInfoLabel();
         }
     }
 
     public void removeItem(T item) {
         allItems.remove(item);
-        updatePagination();
+
+        if (currentPageItems.isEmpty() && currentPage > 0) {
+            currentPage--;
+        }
+
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
     }
 
     public void updateItem(int index, T item) {
@@ -562,35 +759,14 @@ public class Table<T> extends VBox {
 
     public void clearData() {
         allItems.clear();
-        updatePagination();
+        currentPage = 0;
+        updatePageData();
+        updatePaginationButtons();
+        updateInfoLabel();
     }
 
     public void refresh() {
         tableView.refresh();
-        updateInfoLabel();
-    }
-
-    public void filter(Function<T, Boolean> predicate) {
-        List<T> filtered = allItems.stream()
-                .filter(predicate::apply)
-                .collect(Collectors.toList());
-
-        currentPageItems.clear();
-
-        if (paginationEnabled) {
-            int fromIndex = pagination.getCurrentPageIndex() * itemsPerPage;
-            int toIndex = Math.min(fromIndex + itemsPerPage, filtered.size());
-
-            if (fromIndex < filtered.size()) {
-                currentPageItems.addAll(filtered.subList(fromIndex, toIndex));
-            }
-
-            int pageCount = (int) Math.ceil((double) filtered.size() / itemsPerPage);
-            pagination.setPageCount(Math.max(1, pageCount));
-        } else {
-            currentPageItems.addAll(filtered);
-        }
-
         updateInfoLabel();
     }
 
@@ -606,8 +782,8 @@ public class Table<T> extends VBox {
         tableView.getSelectionModel().select(index);
     }
 
-    public void selectItem(T index) {
-        tableView.getSelectionModel().select(index);
+    public void selectItem(T item) {
+        tableView.getSelectionModel().select(item);
     }
 
     public void clearSelection() {
@@ -638,29 +814,22 @@ public class Table<T> extends VBox {
         return tableView;
     }
 
-    public Pagination getPagination() {
-        return pagination;
-    }
-
     public int getItemCount() {
         return allItems.size();
     }
 
     public int getCurrentPage() {
-        return pagination.getCurrentPageIndex();
+        return currentPage;
     }
 
-    public int getTotalPages() {
-        return pagination.getPageCount();
-    }
 
     private Label createBadge(String text, BadgeStyleProvider styleProvider) {
         Label badge = new Label(text);
         badge.setPadding(new Insets(4, 12, 4, 12));
         badge.setStyle(
                 "-fx-background-radius: 12; " +
-                "-fx-font-weight: bold; " +
-                "-fx-font-size: 11px;"
+                        "-fx-font-weight: bold; " +
+                        "-fx-font-size: 11px;"
         );
 
         String customStyle = styleProvider.getStyle(text);
@@ -676,17 +845,13 @@ public class Table<T> extends VBox {
         return badge;
     }
 
-    private Label createBadgeById(
-            String text,
-            Integer id,
-            BadgeStyleProviderById styleProvider
-    ) {
+    private Label createBadgeById(String text, Integer id, BadgeStyleProviderById styleProvider) {
         Label badge = new Label(text);
         badge.setPadding(new Insets(4, 12, 4, 12));
         badge.setStyle(
                 "-fx-background-radius: 12; " +
-                "-fx-font-weight: bold; " +
-                "-fx-font-size: 11px;"
+                        "-fx-font-weight: bold; " +
+                        "-fx-font-size: 11px;"
         );
 
         String customStyle = styleProvider.getStyle(id);
@@ -726,94 +891,6 @@ public class Table<T> extends VBox {
         }
 
         return current;
-    }
-
-    public Table<T> addToggleSwitchColumn(
-            String header,
-            Function<T, Boolean> statusExtractor,
-            Function<T, String> descriptionExtractor,
-            double width,
-            BiConsumer<T, Boolean> onToggle
-    ) {
-        TableColumn<T, Void> column = new TableColumn<>(header);
-        column.setPrefWidth(width);
-        column.setStyle("-fx-alignment: CENTER;");
-
-        column.setCellFactory(col -> new TableCell<T, Void>() {
-            private final ToggleSwitch toggleSwitch = new ToggleSwitch();
-            private final Label label = new Label();
-            private final HBox container = new HBox(8);
-            private boolean isUpdating = false;
-
-            {
-                container.setAlignment(Pos.CENTER);
-                container.getChildren().addAll(toggleSwitch, label);
-
-                toggleSwitch.selectedProperty().addListener((observable, oldValue, newValue) -> {
-                    if (isUpdating) return;
-
-                    T item = getTableView().getItems().get(getIndex());
-
-                    boolean previousState = oldValue;
-
-                    if (onToggle != null) {
-                        isUpdating = true;
-
-                        try {
-                            onToggle.accept(item, newValue);
-
-                            Boolean currentItemState = statusExtractor.apply(item);
-
-                            if (currentItemState != null && currentItemState != newValue) {
-                                toggleSwitch.setSelected(currentItemState);
-                                updateLabelStyle(currentItemState);
-                            }
-                        } finally {
-                            isUpdating = false;
-                        }
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    T rowItem = getTableView().getItems().get(getIndex());
-                    Boolean isActive = statusExtractor.apply(rowItem);
-                    String description = descriptionExtractor.apply(rowItem);
-                    boolean switchState = (isActive != null && isActive);
-
-                    isUpdating = true;
-                    toggleSwitch.setSelected(switchState);
-
-                    label.setText(description != null ? description : "Sin estado");
-                    label.setStyle(
-                            switchState
-                                ? "-fx-text-fill: -color-success-emphasis; -fx-font-weight: bold;"
-                                : "-fx-text-fill: -color-danger-emphasis;"
-                    );
-
-                    isUpdating = false;
-
-                    setGraphic(container);
-                }
-            }
-
-            private void updateLabelStyle(boolean isActive) {
-                label.setStyle(
-                        isActive
-                            ? "-fx-text-fill: -color-success-emphasis; -fx-font-weight: bold;"
-                            : "-fx-text-fill: -color-danger-emphasis;"
-                );
-            }
-        });
-
-        tableView.getColumns().add(column);
-        return this;
     }
 
     @FunctionalInterface
