@@ -2,6 +2,7 @@ package org.iclassq.views.components;
 
 import atlantafx.base.controls.ToggleSwitch;
 import atlantafx.base.theme.Styles;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -55,7 +56,6 @@ public class Table<T> extends VBox {
         this.setAlignment(Pos.CENTER);
         this.setSpacing(10);
 
-        VBox.setVgrow(tableView, Priority.ALWAYS);
         this.getChildren().add(tableView);
 
         createPagination();
@@ -71,7 +71,42 @@ public class Table<T> extends VBox {
         pagination.setVisible(paginationEnabled);
         pagination.setManaged(paginationEnabled);
 
+        pagination.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+            if (newSkin != null) customizePaginationButtons();
+        });
+
         this.getChildren().add(pagination);
+    }
+
+    private void customizePaginationButtons() {
+        pagination.lookupAll(".number-button").forEach(node -> {
+            if (node instanceof Button) {
+                Button btn = (Button) node;
+                btn.setCursor(javafx.scene.Cursor.HAND);
+
+                btn.setOnMouseEntered(e -> {
+                    if (!btn.getStyleClass().contains("selected")) {
+                        btn.setStyle(
+                                "-fx-background-color: -color-accent-subtle; " +
+                                "-fx-text-fill: -color-accent-emphasis;"
+                        );
+                    }
+                });
+
+                btn.setOnMouseExited(e -> {
+                    if (!btn.getStyleClass().contains("selected")) {
+                        btn.setStyle("");
+                    }
+                });
+            }
+        });
+
+        pagination.lookupAll(".left-arrow-button, .right-arrow-button").forEach(node -> {
+            if (node instanceof Button) {
+                Button btn = (Button) node;
+                btn.setCursor(javafx.scene.Cursor.HAND);
+            }
+        });
     }
 
     private void createInfoLabel() {
@@ -101,8 +136,9 @@ public class Table<T> extends VBox {
         }
 
         updateInfoLabel();
+        Platform.runLater(this::customizePaginationButtons);
 
-        return tableView;
+        return null;
     }
 
     private void updateInfoLabel() {
