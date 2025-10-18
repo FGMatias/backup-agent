@@ -1,9 +1,11 @@
 package org.iclassq.controller;
 
 import jakarta.annotation.PostConstruct;
+import javafx.application.Platform;
 import org.iclassq.entity.ExecutionStatus;
 import org.iclassq.entity.History;
 import org.iclassq.entity.TypeTask;
+import org.iclassq.event.UpdatedEvent;
 import org.iclassq.service.ExecutionStatusService;
 import org.iclassq.service.HistoryService;
 import org.iclassq.service.TypeTaskService;
@@ -11,6 +13,7 @@ import org.iclassq.views.HistoryContent;
 import org.iclassq.views.components.Message;
 import org.iclassq.views.components.Notification;
 import org.iclassq.views.dialogs.HistoryDialog;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -52,6 +55,20 @@ public class HistoryController {
         loadStatus();
         loadTypesTasks();
         loadInitialData();
+    }
+
+    @EventListener
+    public void onHistoryUpdated(UpdatedEvent event) {
+        logger.info("Evento recibido: " + event.getEventType() + " para historial ID: " + event.getHistory().getId());
+
+        Platform.runLater(() -> {
+            try {
+                loadInitialData();
+                logger.info("Datos del historial actualizados automaticamente");
+            } catch (Exception e) {
+                logger.severe("Error al actualizar datos del historial: " + e.getMessage());
+            }
+        });
     }
 
     private void setupEventHandlers() {

@@ -7,8 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 @Component
@@ -21,6 +26,8 @@ public class BackupTaskScheduler {
     @Autowired
     private TaskExecutor taskExecutor;
 
+    private final Map<Integer, LocalDateTime> lastExecutionMap = new HashMap<>();
+
     @Scheduled(cron = "0 * * * * *")
     public void checkScheduledTasks() {
         logger.fine("Verificando tareas programadas");
@@ -28,13 +35,15 @@ public class BackupTaskScheduler {
         try {
             List<Task> activeTasks = taskService.findByIsActive(true);
 
-            LocalTime now = LocalTime.now();
+            LocalDateTime now = LocalDateTime.now();
             LocalTime currentMinute = LocalTime.of(now.getHour(), now.getMinute());
+            LocalDate today = now.toLocalDate();
 
             for (Task task : activeTasks) {
-                if (shouldExecuteTask(task, currentMinute)) {
+                if (shouldExecuteTask(task, currentMinute, today, now)) {
                     logger.info("Tarea programada encontrada: " + task.getName());
 
+                    lastExecutionMap.put(task.getId(), now);
                     new Thread(() -> {
                         try {
                             taskExecutor.executeTask(task);
@@ -49,21 +58,49 @@ public class BackupTaskScheduler {
         }
     }
 
-    private boolean shouldExecuteTask(Task task, LocalTime currentTime) {
-        if (task.getFrequency().getId() == 1) {
-            return false;
-        }
+    private boolean shouldExecuteTask(
+            Task task,
+            LocalTime currentTime,
+            LocalDate today,
+            LocalDateTime now
+    ) {
+        if (task.getFrequency() == null) return false;
 
-        if (task.getScheduleTime() == null) {
-            return false;
-        }
+        int frequencyId = task.getFrequency().getId();
+
+        if (frequencyId == 1) return false;
+
+        if (task.getScheduleTime() == null) return false;
 
         LocalTime taskTime = LocalTime.of(
                 task.getScheduleTime().getHour(),
                 task.getScheduleTime().getMinute()
         );
 
-        return taskTime.equals(currentTime);
+        if (!taskTime.equals(currentTime)) return false;
+
+        LocalDateTime lastExecution = lastExecutionMap.get(task.getId());
+
+        if (lastExecution != null) {
+            if (now.minusMinutes(2).isBefore(lastExecution)) {
+                logger.fine("Tarea " + task.getName() + " ya se ejecuto recientemente");
+                return false;
+            }
+        }
+
+        if (frequencyId == 2) {
+            logger.info("Tarea diaria detectada: " + task.getName());
+            return true;
+        }
+
+        if (frequencyId == 3) {
+            DayOfWeek dayOfWeek = today.getDayOfWeek();
+            boolean isMonday = dayOfWeek == DayOfWeek.MONDAY;
+
+            return isMonday;
+        }
+
+        return false;
     }
 
     public void executeTaskManually(Task task) {
@@ -76,5 +113,13 @@ public class BackupTaskScheduler {
                 logger.severe("Error al ejecutar tarea manualmente: " + e.getMessage());
             }
         }).start();
+    }
+
+    public void clearExecutionHistory() {
+        lastExecutionMap.clear();
+    }
+
+    public LocalDateTime getLastExecution(int taskId) {
+        return lastExecutionMap.get(taskId);
     }
 }

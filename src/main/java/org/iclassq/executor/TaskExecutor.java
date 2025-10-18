@@ -3,9 +3,11 @@ package org.iclassq.executor;
 import org.iclassq.entity.ExecutionStatus;
 import org.iclassq.entity.History;
 import org.iclassq.entity.Task;
+import org.iclassq.event.UpdatedEvent;
 import org.iclassq.repository.ExecutionStatusRepository;
 import org.iclassq.repository.HistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,9 @@ public class TaskExecutor {
 
     @Autowired
     private ExecutionStatusRepository executionStatusRepository;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     public void executeTask(Task task) {
         logger.info("========================================");
@@ -66,8 +71,12 @@ public class TaskExecutor {
 
             history.setStatus(status);
 
-            historyRepository.save(history);
+            History savedHistory = historyRepository.save(history);
             logger.info("Historial guardado para la tarea: " + task.getName());
+
+            eventPublisher.publishEvent(
+                    new UpdatedEvent(this, savedHistory, UpdatedEvent.EventType.CREATED)
+            );
         } catch (Exception e) {
             logger.severe("Error al guardar el historial: " + e.getMessage());
         }

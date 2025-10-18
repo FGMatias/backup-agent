@@ -106,7 +106,7 @@ public class FileBackupExecutor implements TaskExecutorStrategy {
             }
 
             String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String backupName = task.getName().replaceAll("[^a-zA-Z0-9]", "_") + "_" + timeStamp;
+            String backupName = "audios_" + timeStamp;
             Path backupFile = destinationBasePath.resolve(backupName + tool.extension);
             Path tempDir = Files.createTempDirectory("backup_temp_");
 

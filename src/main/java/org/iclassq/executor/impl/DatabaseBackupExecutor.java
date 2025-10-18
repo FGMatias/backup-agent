@@ -54,8 +54,8 @@ public class DatabaseBackupExecutor implements TaskExecutorStrategy {
                 return result;
             }
 
-            String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String fileName = String.format("%s_backup_%s.sql", databaseName, timeStamp);
+            String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            String fileName = String.format("%s_%s.sql", databaseName, timeStamp);
             String fullPath = Paths.get(destinationPath, fileName).toString();
 
             ProcessBuilder processBuilder;

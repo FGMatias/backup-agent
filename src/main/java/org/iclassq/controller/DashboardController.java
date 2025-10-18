@@ -1,15 +1,18 @@
 package org.iclassq.controller;
 
 import jakarta.annotation.PostConstruct;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.input.MouseEvent;
 import org.iclassq.entity.Task;
+import org.iclassq.event.UpdatedEvent;
 import org.iclassq.scheduler.BackupTaskScheduler;
 import org.iclassq.service.HistoryService;
 import org.iclassq.service.TaskService;
 import org.iclassq.views.DashboardContent;
 import org.iclassq.views.components.Message;
 import org.iclassq.views.components.Notification;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
@@ -41,6 +44,20 @@ public class DashboardController {
     public void initialize() {
         setupEventHandlers();
         loadInitialData();
+    }
+
+    @EventListener
+    public void onHistoryUpdated(UpdatedEvent event) {
+        logger.info("Dashboard: Evento recibido - " + event.getEventType());
+
+        Platform.runLater(() -> {
+            try {
+                loadStatistics();
+                logger.info("Estadisticas del dashboard actualizadas automaticamente");
+            } catch (Exception e) {
+                logger.severe("Error al actualizar las estadísticas del dashboard: " + e.getMessage());
+            }
+        });
     }
 
     private void setupEventHandlers() {
@@ -80,6 +97,27 @@ public class DashboardController {
             logger.info("Dashboard cargado correctamente");
         } catch (Exception e) {
             logger.severe("Error al cargar dashboard: " + e.getMessage());
+        }
+    }
+
+    private void loadStatistics() {
+        try {
+            long completedToday = historyService.countCompletedToday();
+            view.updateCompletedTodayCount(completedToday);
+
+            long backupsToday = historyService.countByTypeToday(1);
+            view.updateBackupsCount(backupsToday);
+
+            long filesMovedToday = historyService.countFilesByTypeToday(3);
+            view.updateFilesMovedCount(filesMovedToday);
+
+            String spaceFreed = historyService.getTotalSizeToday();
+            view.updateSpaceFreed(spaceFreed);
+
+            long errorsToday = historyService.countByStatus(2);
+            view.updateErrorsCount(errorsToday);
+        } catch (Exception e) {
+            logger.severe("Error al cargar estadísticas: " + e.getMessage());
         }
     }
 
@@ -132,7 +170,5 @@ public class DashboardController {
                     }
             );
         }
-
     }
-
 }

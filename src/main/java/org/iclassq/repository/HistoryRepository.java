@@ -11,11 +11,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface HistoryRepository extends JpaRepository<History, Integer> {
-//    @Query("SELECT h FROM History h WHERE h.taskId.id = :taskId")
-//    List<History> findByTaskId(@Param("taskId") int taskId);
-
-//    Long countByCreatedAt_Date(LocalDate date);
-
     Long countByStatus_Id(int statusId);
 
     List<History> findByTaskId(Task taskId);
